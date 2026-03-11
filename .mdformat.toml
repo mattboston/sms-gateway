@@ -1,0 +1,7 @@
+# mdformat configuration for MkDocs compatibility
+# Uses 4-space indentation for nested lists (Python-Markdown requirement)
+
+wrap        = "keep"
+number      = true
+end_of_line = "lf"
+extensions  = ["gfm_alerts"]

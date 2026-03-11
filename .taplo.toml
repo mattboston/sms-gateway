@@ -1,0 +1,7 @@
+# taplo configuration for TOML formatting
+
+include = ["*.toml"]
+
+[formatting]
+align_entries       = true
+allowed_blank_lines = 1

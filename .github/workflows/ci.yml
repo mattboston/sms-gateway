@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: Build frontend
+        run: cd src/web && npm ci && npm run build
+
+      - name: ESLint
+        run: cd src/web && npm run lint
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: src
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: Build frontend
+        run: cd src/web && npm ci && npm run build
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+
+      - name: Run Go tests
+        run: cd src && go test -race -coverprofile=coverage.out ./...
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: src/coverage.out
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: Build frontend
+        run: cd src/web && npm ci && npm run build
+
+      - name: Build Go binary
+        run: cd src && CGO_ENABLED=0 go build -o ../bin/sms-gateway ./cmd/sms-gateway
+
+      - name: Verify swagger docs are up to date
+        run: |
+          go install github.com/swaggo/swag/cmd/swag@latest
+          cd src && swag init -g cmd/sms-gateway/main.go -o docs --parseDependency --parseInternal
+          git diff --exit-code docs/ || (echo "Swagger docs are out of date. Run 'just swagger' and commit." && exit 1)

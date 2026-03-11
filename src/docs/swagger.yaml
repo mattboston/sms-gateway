@@ -1,0 +1,769 @@
+basePath: /api/v1
+definitions:
+  api.HealthResponse:
+    properties:
+      database:
+        type: string
+      modem:
+        type: string
+      status:
+        type: string
+    type: object
+  models.APIKey:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      key:
+        type: string
+      label:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  models.ATCommandRequest:
+    properties:
+      command:
+        type: string
+    type: object
+  models.ATCommandResponse:
+    properties:
+      response:
+        type: string
+    type: object
+  models.ChangePasswordRequest:
+    properties:
+      current_password:
+        type: string
+      new_password:
+        type: string
+    type: object
+  models.CreateAPIKeyRequest:
+    properties:
+      label:
+        type: string
+    type: object
+  models.CreateAPIKeyResponse:
+    properties:
+      api_key:
+        $ref: '#/definitions/models.APIKey'
+    type: object
+  models.CreateUserRequest:
+    properties:
+      is_admin:
+        type: boolean
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  models.Direction:
+    enum:
+    - inbound
+    - outbound
+    type: string
+    x-enum-varnames:
+    - DirectionInbound
+    - DirectionOutbound
+  models.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  models.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  models.LoginResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  models.Message:
+    properties:
+      api_key_id:
+        type: string
+      body:
+        type: string
+      created_at:
+        type: string
+      direction:
+        $ref: '#/definitions/models.Direction'
+      error_message:
+        type: string
+      id:
+        type: string
+      modem_response:
+        type: string
+      phone_number:
+        type: string
+      status:
+        $ref: '#/definitions/models.MessageStatus'
+      updated_at:
+        type: string
+    type: object
+  models.MessageStatus:
+    enum:
+    - pending
+    - sending
+    - sent
+    - failed
+    - received
+    - read
+    type: string
+    x-enum-varnames:
+    - StatusPending
+    - StatusSending
+    - StatusSent
+    - StatusFailed
+    - StatusReceived
+    - StatusRead
+  models.ModemSignalResponse:
+    properties:
+      quality:
+        type: string
+      signal:
+        type: integer
+    type: object
+  models.ModemStatusResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  models.SendSMSRequest:
+    properties:
+      body:
+        type: string
+      to:
+        type: string
+    type: object
+  models.SendSMSResponse:
+    properties:
+      id:
+        type: string
+      message:
+        type: string
+      status:
+        $ref: '#/definitions/models.MessageStatus'
+    type: object
+  models.User:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      is_admin:
+        type: boolean
+      must_change_password:
+        type: boolean
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:5174
+info:
+  contact: {}
+  description: REST API for sending and receiving SMS messages via a USB GSM modem.
+  license:
+    name: MIT
+  title: SMS Gateway API
+  version: "1.0"
+paths:
+  /api/v1/apikeys:
+    get:
+      description: Returns all API keys for the authenticated user. Admins see all
+        keys.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.APIKey'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List API keys
+      tags:
+      - API Keys
+    post:
+      consumes:
+      - application/json
+      description: Generates a new API key for the authenticated user with an optional
+        label.
+      parameters:
+      - description: API key creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateAPIKeyRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.CreateAPIKeyResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create API key
+      tags:
+      - API Keys
+  /api/v1/apikeys/{id}:
+    delete:
+      description: Deactivates an API key by its unique identifier.
+      parameters:
+      - description: API Key ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: API key deactivated'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Deactivate API key
+      tags:
+      - API Keys
+  /api/v1/apikeys/{id}/delete:
+    delete:
+      description: Permanently deletes an API key by its unique identifier.
+      parameters:
+      - description: API Key ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: API key deleted'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete API key
+      tags:
+      - API Keys
+  /api/v1/auth/change-password:
+    post:
+      consumes:
+      - application/json
+      description: Allows an authenticated user to change their password by providing
+        the current and new passwords.
+      parameters:
+      - description: Current and new password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: password updated'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change password
+      tags:
+      - Auth
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user with username and password, returning a JWT
+        token.
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: User login
+      tags:
+      - Auth
+  /api/v1/auth/logout:
+    post:
+      description: Clears the authentication cookie, logging the user out.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: logged out'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: User logout
+      tags:
+      - Auth
+  /api/v1/health:
+    get:
+      description: Checks database connectivity and modem status, returning the overall
+        system health.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.HealthResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/api.HealthResponse'
+      summary: Health check
+      tags:
+      - Health
+  /api/v1/modem/at:
+    post:
+      consumes:
+      - application/json
+      description: Sends a raw AT command to the GSM modem and returns the response.
+        Requires admin privileges.
+      parameters:
+      - description: AT command to send
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ATCommandRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ATCommandResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Send AT command
+      tags:
+      - Modem
+  /api/v1/modem/signal:
+    get:
+      description: Returns the GSM modem signal strength and quality assessment.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ModemSignalResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      summary: Get modem signal strength
+      tags:
+      - Modem
+  /api/v1/modem/status:
+    get:
+      description: Checks whether the GSM modem is responsive and returns its current
+        status.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ModemStatusResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/models.ModemStatusResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      summary: Get modem status
+      tags:
+      - Modem
+  /api/v1/sms/{id}:
+    delete:
+      description: Deletes a single SMS message by its unique identifier.
+      parameters:
+      - description: Message ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      summary: Delete message
+      tags:
+      - SMS
+    get:
+      description: Returns a single SMS message by its unique identifier.
+      parameters:
+      - description: Message ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Message'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      summary: Get message by ID
+      tags:
+      - SMS
+  /api/v1/sms/{id}/read:
+    put:
+      description: Marks an inbound message as read, changing its status from "received"
+        to "read".
+      parameters:
+      - description: Message ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      summary: Mark message as read
+      tags:
+      - SMS
+  /api/v1/sms/{id}/unread:
+    put:
+      description: Marks an inbound message as unread, changing its status from "read"
+        back to "received".
+      parameters:
+      - description: Message ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      summary: Mark message as unread
+      tags:
+      - SMS
+  /api/v1/sms/inbox:
+    get:
+      description: Returns inbound SMS messages. Use status=received for unread only
+        (default), status=read for read messages, or all=true for everything.
+      parameters:
+      - description: 'Filter by status: received (unread), read'
+        in: query
+        name: status
+        type: string
+      - description: Set to true to return all inbound messages regardless of status
+        in: query
+        name: all
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Message'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      summary: Get inbox messages
+      tags:
+      - SMS
+  /api/v1/sms/outbox:
+    get:
+      description: Returns all outbound SMS messages.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Message'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      summary: Get outbox messages
+      tags:
+      - SMS
+  /api/v1/sms/send:
+    post:
+      consumes:
+      - application/json
+      description: Sends an SMS message to the specified phone number via the GSM
+        modem.
+      parameters:
+      - description: SMS message to send
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.SendSMSRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SendSMSResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      summary: Send SMS
+      tags:
+      - SMS
+  /api/v1/users:
+    get:
+      description: Returns all user accounts. Requires admin privileges.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.User'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List users
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account with the specified username, password,
+        and admin status. Requires admin privileges.
+      parameters:
+      - description: User creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create user
+      tags:
+      - Users
+securityDefinitions:
+  ApiKeyAuth:
+    description: API key for programmatic access
+    in: header
+    name: X-API-Key
+    type: apiKey
+  BearerAuth:
+    description: JWT token with Bearer prefix (e.g. "Bearer eyJhbG...")
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

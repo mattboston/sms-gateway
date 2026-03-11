@@ -1,0 +1,15 @@
+# yamlfmt configuration
+---
+match_type: doublestar
+
+include: ["**/*.yaml", "**/*.yml"]
+
+exclude: []
+
+formatter:
+  type: basic
+  include_document_start: true
+  retain_line_breaks_single: true
+  max_line_length: 120
+  scan_folded_as_literal: true
+  pad_line_comments: 2

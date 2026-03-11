@@ -1,0 +1,48 @@
+---
+# Lefthook configuration for sms-gateway
+# https://github.com/evilmartians/lefthook
+
+pre-commit:
+  parallel: true
+
+  jobs:
+    - name: check-merge-conflicts
+      run: |
+        git diff --name-only --diff-filter=U | head -1 | grep -q . && \
+          echo "❌ Merge conflicts detected" && exit 1 || true
+
+    - name: gitleaks
+      run: gitleaks protect --no-banner --staged --redact --verbose
+
+    - name: golangci-lint
+      glob: "*.go"
+      run: golangci-lint run --fix {staged_files}
+
+    - name: gofumpt
+      glob: "*.go"
+      stage_fixed: true
+      run: gofumpt -w {staged_files}
+
+    - name: eslint
+      glob: "web/**/*.{ts,tsx,js,jsx}"
+      run: npx --prefix web eslint --fix {staged_files}
+
+    - name: prettier
+      glob: "web/**/*.{ts,tsx,js,jsx,json,css,scss}"
+      stage_fixed: true
+      run: npx --prefix web prettier --write {staged_files}
+
+    - name: mdformat
+      glob: "*.md"
+      stage_fixed: true
+      run: uv run mdformat {staged_files}
+
+    - name: yamlfmt
+      glob: "*.{yaml,yml}"
+      stage_fixed: true
+      run: yamlfmt {staged_files}
+
+    - name: taplo
+      glob: "*.toml"
+      stage_fixed: true
+      run: taplo fmt {staged_files}

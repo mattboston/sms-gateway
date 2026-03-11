@@ -1,0 +1,12 @@
+{
+  "users": [
+    {
+      "name": "Alice Example",
+      "phone": "+15551234567"
+    },
+    {
+      "name": "Bob Example",
+      "phone": "+15559876543"
+    }
+  ]
+}

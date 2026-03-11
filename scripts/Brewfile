@@ -1,0 +1,35 @@
+# Brewfile for sms-gateway development environment
+
+# Core development tools
+brew "bash"
+brew "curl"
+brew "git"
+brew "gh"
+brew "gum"
+brew "wget"
+brew "just"
+brew "worktrunk"
+cask "claude"
+cask "docker-desktop"
+
+# Go
+brew "go"
+brew "golangci-lint"
+brew "gofumpt"
+
+# Node.js (for React frontend)
+brew "node"
+
+# Code quality and formatting
+brew "gitleaks"                 # Find git secrets
+brew "lefthook"                 # Git hooks framework
+brew "markdownlint-cli"         # Markdown linter
+brew "shellcheck"               # Shell script linter
+brew "taplo"                    # TOML formatter
+brew "yamlfmt"                  # YAML formatter
+brew "yamllint"                 # YAML linter
+
+# Language servers (for editor integration)
+brew "bash-language-server"    # Bash language server
+brew "gopls"                   # Go language server
+brew "yaml-language-server"    # YAML language server

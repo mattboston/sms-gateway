@@ -1,0 +1,26 @@
+[Unit]
+Description=SMS Gateway
+Documentation=https://github.com/mattboston/sms-gateway
+After=network.target
+
+[Service]
+Type=simple
+User=sms-gateway
+Group=sms-gateway
+WorkingDirectory=/opt/sms-gateway
+ExecStart=/opt/sms-gateway/sms-gateway serve --config-file /opt/sms-gateway/sms-gateway.conf
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/sms-gateway
+PrivateTmp=true
+
+# Allow access to USB modem device
+SupplementaryGroups=dialout
+
+[Install]
+WantedBy=multi-user.target

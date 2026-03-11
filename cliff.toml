@@ -1,0 +1,30 @@
+[changelog]
+body = """
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}
+- {% if commit.scope %}*({{ commit.scope }})* {% endif %}\
+{{ commit.message | upper_first }} \
+(`{{ commit.id | truncate(length=7, end="") }}`)
+{%- endfor %}
+{% endfor %}
+"""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+split_commits = false
+commit_parsers = [
+  { message = "^feat", group = "<!-- 0 -->Features" },
+  { message = "^fix", group = "<!-- 1 -->Bug Fixes" },
+  { message = "^refactor", group = "<!-- 2 -->Refactoring" },
+  { message = "^perf", group = "<!-- 3 -->Performance" },
+  { message = "^docs", group = "<!-- 4 -->Documentation" },
+  { message = "^chore\\(release\\)", skip = true },
+  { message = "^chore|^ci|^build|^style|^test", group = "<!-- 5 -->Maintenance" },
+]
+protect_breaking_commits = false
+filter_commits = true
+sort_commits = "newest"
+limit_commits = 50
