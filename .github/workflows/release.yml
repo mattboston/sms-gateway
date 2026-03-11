@@ -100,3 +100,12 @@ jobs:
           else
             echo "changelog=Initial release" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          files: |
+            release/*
