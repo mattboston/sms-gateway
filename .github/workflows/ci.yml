@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   lint:
     name: Lint
@@ -18,7 +21,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: src/web/package-lock.json
 
@@ -31,6 +34,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: src/go.mod
+          cache-dependency-path: src/go.sum
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
@@ -45,7 +49,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: src/web/package-lock.json
 
@@ -55,6 +59,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: src/go.mod
+          cache-dependency-path: src/go.sum
 
       - name: Run Go tests
         run: cd src && go test -race -coverprofile=coverage.out ./...
@@ -75,10 +80,11 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: src/go.mod
+          cache-dependency-path: src/go.sum
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: src/web/package-lock.json
 
