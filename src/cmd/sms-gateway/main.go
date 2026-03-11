@@ -37,10 +37,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+var version = "dev"
+
 func main() {
 	rootCmd := &cobra.Command{
-		Use:   "sms-gateway",
-		Short: "SMS Gateway - Send and receive SMS via a USB GSM modem",
+		Use:     "sms-gateway",
+		Short:   "SMS Gateway - Send and receive SMS via a USB GSM modem",
+		Version: version,
 	}
 
 	// Persistent flags bound to viper.

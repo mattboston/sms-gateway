@@ -92,14 +92,18 @@ jobs:
         id: changelog
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
+          echo "## Changes" >> "$GITHUB_OUTPUT"
+
           if [ -n "$PREV_TAG" ]; then
-            echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
             git log --pretty=format:"- %s (%h)" "$PREV_TAG"..HEAD >> "$GITHUB_OUTPUT"
-            echo "" >> "$GITHUB_OUTPUT"
-            echo "EOF" >> "$GITHUB_OUTPUT"
           else
-            echo "changelog=Initial release" >> "$GITHUB_OUTPUT"
+            git log -20 --pretty=format:"- %s (%h)" >> "$GITHUB_OUTPUT"
           fi
+
+          echo "" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
