@@ -1,7 +1,7 @@
 // @title SMS Gateway API
 // @version 1.0
 // @description REST API for sending and receiving SMS messages via a USB GSM modem.
-// @license.name MIT
+// @license.name GPL-3.0
 
 // @host localhost:5174
 // @BasePath /api/v1

@@ -113,6 +113,60 @@ On first start, a default admin account is created:
 
 You will be required to change the password on first login.
 
+## Web UI
+
+Open the WebUI at `http://localhost:5174` and sign in with an admin account.
+
+- Use **Send SMS** to send a test message.
+- Use **Inbox** to confirm inbound messages are being received.
+- Use **Outbox** to confirm delivery records.
+- Use **API Keys** to create keys for external integrations (for example, OpenClaw).
+
+## OpenClaw Integration
+
+Use the bundled OpenClaw skill and scripts in `openclaw/` to send and receive SMS from OpenClaw.
+
+1. Copy the OpenClaw skill files into your OpenClaw workspace:
+
+   ```bash
+   mkdir -p ~/.openclaw/workspace/skills/sms-gateway
+   cp -R openclaw/* ~/.openclaw/workspace/skills/sms-gateway/
+   ```
+
+2. Create your script environment file:
+
+   ```bash
+   cp ~/.openclaw/workspace/skills/sms-gateway/scripts/.env.example ~/.openclaw/workspace/skills/sms-gateway/scripts/.env
+   ```
+
+3. Log in to the SMS Gateway WebUI.
+4. Go to API Keys and create a new API key.
+5. Set `SMS_GATEWAY_API_KEY` in `~/.openclaw/workspace/skills/sms-gateway/scripts/.env` to that new key.
+6. Update `~/.openclaw/workspace/skills/sms-gateway/scripts/allowlist.json` with allowed names and phone numbers.
+7. Test outbound messaging:
+
+   ```bash
+   cd ~/.openclaw/workspace/skills/sms-gateway/scripts
+   ./send_sms.sh "+15551234567" "Test message from OpenClaw"
+   ```
+
+8. Restart OpenClaw so it picks up the new skill and config.
+9. In OpenClaw, ask it to send an SMS message to a user in your allowlist.
+10. Ask OpenClaw to check for incoming SMS messages every minute.
+
+Example `allowlist.json` entry format:
+
+```json
+{
+  "users": [
+    {
+      "name": "Alice Example",
+      "phone": "+15551234567"
+    }
+  ]
+}
+```
+
 ## Configuration
 
 Configuration is done via a config file, CLI flags, or environment variables.
@@ -180,6 +234,8 @@ Interactive API documentation is available at `/swagger/` when the server is run
 
 ## Development
 
+Before contributing, review `CONTRIBUTING.md` for branch naming, conventional commit requirements, hook setup (`just init`), and pull request expectations.
+
 ### Prerequisites
 
 - Go 1.24+
@@ -217,4 +273,4 @@ src/
 
 ## License
 
-MIT
+GPL-3.0
