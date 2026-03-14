@@ -18,7 +18,7 @@ You can send and receive SMS messages through the SMS Gateway using shell script
 
 ## Prerequisites
 
-Before using the SMS Gateway skill with OpenClaw, you need to install the SMS Gateway service. Read the [README.md](README.md) for more details.
+Before using the SMS Gateway skill with OpenClaw, you need to install the SMS Gateway service. Read the [README.md](https://github.com/mattboston/sms-gateway/blob/main/openclaw/README.md) for more details.
 
 ## Setup
 
