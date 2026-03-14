@@ -23,13 +23,30 @@ To run SMS Gateway, you need a USB GSM modem and an active SIM card with SMS cap
 
 We use and recommend the [SIM7600G-H 4G LTE USB Dongle](https://www.amazon.com/dp/B0BHQFTFPH?tag=mattboston-20). It supports global 4G LTE bands, works out of the box on Linux (including Raspberry Pi), and exposes a standard serial interface for AT commands. For detailed documentation, pinout diagrams, and troubleshooting, see the [Waveshare SIM7600G-H wiki](https://www.waveshare.com/wiki/SIM7600G-H_4G_DONGLE).
 
+![SIM7600G-H 4G Dongle](docs/images/sim7600g-h-4g-dongle-1.jpg)
+
 ### SIM Card
 
-Any SIM card with an active SMS plan will work. We use [Tello](https://tello.com/account/register?_referral=P30KX3Z2), which offers affordable pay-as-you-go plans on the T-Mobile network.
+Any SIM card with an active SMS plan will work. We use [Tello](https://tello.com/account/register?_referral=P30KX3Z2), which offers affordable pay-as-you-go plans on the T-Mobile network. I think I'm paying $8/month for unlimited SMS.
 
 > **Note:** The links above are referral links. Using them helps support the development of this project and is greatly appreciated!
 >
 > If you'd like to support the project further, check out my [Amazon Wish List](https://www.amazon.com/hz/wishlist/ls/T3L6QCKZJ4Q4?ref_=wl_share).
+
+## Screenshots
+
+![Screenshot 1](docs/images/screenshot01.png)
+![Screenshot 2](docs/images/screenshot02.png)
+![Screenshot 3](docs/images/screenshot03.png)
+![Screenshot 4](docs/images/screenshot04.png)
+![Screenshot 5](docs/images/screenshot05.png)
+![Screenshot 6](docs/images/screenshot06.png)
+![Screenshot 7](docs/images/screenshot07.png)
+![Screenshot 8](docs/images/screenshot08.png)
+![Screenshot 9](docs/images/screenshot09.png)
+![Screenshot 10](docs/images/screenshot10.png)
+![Screenshot 11](docs/images/screenshot11.png)
+![Screenshot 12](docs/images/screenshot12.png)
 
 ## Quick Start
 
@@ -204,7 +221,7 @@ sms-gateway apikey revoke --id <uuid>
 
 ## API
 
-Interactive API documentation is available at `/swagger/` when the server is running.
+Interactive API documentation is available at `/swagger/index.html` when the server is running.
 
 ### Authentication
 

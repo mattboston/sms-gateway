@@ -1,0 +1,12 @@
+# Secrets
+scripts/.env
+
+# Claude Code local config
+.claude/
+
+# Packaged skill archives
+dist/
+
+# OS
+.DS_Store
+Thumbs.db

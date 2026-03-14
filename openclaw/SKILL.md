@@ -1,3 +1,17 @@
+---
+name: sms-gateway
+description: Send and receive SMS messages through a self-hosted SMS Gateway running on a USB GSM modem. Use when the user needs to send text messages, check for incoming messages, or manage SMS communications via a local gateway.
+metadata:
+  openclaw:
+    requires:
+      env:
+        - SMS_GATEWAY_API_KEY
+      bins:
+        - curl
+        - jq
+    primaryEnv: SMS_GATEWAY_API_KEY
+---
+
 # SMS Gateway Skill
 
 You can send and receive SMS messages through the SMS Gateway using shell scripts located in `~/.openclaw/workspace/skills/sms-gateway/scripts`.
@@ -6,7 +20,7 @@ You can send and receive SMS messages through the SMS Gateway using shell script
 
 Before using this skill, create a `.env` file in the `~/.openclaw/workspace/skills/sms-gateway/scripts` directory with the following variables:
 
-```
+```text
 SMS_GATEWAY_URL=http://127.0.0.1:5174
 SMS_GATEWAY_API_KEY=your-api-key-here
 ```
@@ -28,6 +42,7 @@ Send a text message to an allowed phone number.
 ```
 
 Options:
+
 - `-t` - Recipient phone number (must be in `allowlist.json`)
 - `-m` - Message body
 
@@ -65,7 +80,8 @@ The script displays each message with its timestamp, sender number, status, body
 ## Output Format
 
 ### Send output
-```
+
+```text
 Message sent successfully.
 {
   "id": "uuid",
@@ -75,7 +91,8 @@ Message sent successfully.
 ```
 
 ### Receive output
-```
+
+```text
 Inbox messages (received): 2
 
 [2026-03-08T12:00:00Z] From: +15551234567
@@ -96,17 +113,22 @@ Marked message some-uuid as read.
 - When the user asks to see all messages, run `receive_sms.sh -s all`
 - If a send fails, relay the error message to the user
 - Only use the `send_sms.sh` and `receive_sms.sh` scripts to send and receive, do not communicate directly with the `SMS_GATEWAY_API_KEY`
+- When you receive an SMS from a contact, check whether you previously sent an SMS to that same number in the current session or a recent workflow — if so, treat the incoming message as a reply to that conversation rather than an unrelated inbound message
 
 ## Troubleshooting
 
 ### "Phone number is not in the allowlist"
+
 The recipient number must exactly match an entry in `allowlist.json`, including the country code prefix (e.g., `+1`). Check the allowlist and add the number if appropriate.
 
 ### "SMS_GATEWAY_API_KEY is not set"
+
 Create a `.env` file in `~/.openclaw/workspace/skills/sms-gateway/scripts/` with your API key. See the Setup section above.
 
 ### Send fails with error
+
 Check that the SMS Gateway is running and accessible at the URL configured in `.env`. You can verify connectivity with:
+
 ```bash
 curl -s http://127.0.0.1:5174/api/v1/health
 ```
