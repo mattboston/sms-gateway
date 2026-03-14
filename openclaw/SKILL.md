@@ -16,6 +16,10 @@ metadata:
 
 You can send and receive SMS messages through the SMS Gateway using shell scripts located in `~/.openclaw/workspace/skills/sms-gateway/scripts`.
 
+## Prerequisites
+
+Before using the SMS Gateway skill with OpenClaw, you need to install the SMS Gateway service. Read the [README.md](README.md) for more details.
+
 ## Setup
 
 Before using this skill, create a `.env` file in the `~/.openclaw/workspace/skills/sms-gateway/scripts` directory with the following variables:
