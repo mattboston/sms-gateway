@@ -1,0 +1,9 @@
+.git
+.github
+.tmp
+.worktrees
+bin
+docs
+openclaw
+src/web/node_modules
+src/web/dist

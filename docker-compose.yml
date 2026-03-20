@@ -1,0 +1,27 @@
+services:
+  sms-gateway:
+    image: ${IMAGE_REPOSITORY:-ghcr.io/mattboston/sms-gateway}:${IMAGE_VERSION:-latest}
+    pull_policy: always
+    container_name: sms-gateway
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5174}:${PORT:-5174}"
+    environment:
+      PORT: ${PORT:-5174}
+      DB_DRIVER: ${DB_DRIVER:-sqlite}
+      DB_DSN: ${DB_DSN:-/opt/sms-gateway/sms-gateway.db}
+      CONFIG_FILE: ${CONFIG_FILE:-/opt/sms-gateway/sms-gateway.conf}
+      DEVICE_PATH: ${DEVICE_PATH:-/dev/ttyUSB0}
+      BAUD_RATE: ${BAUD_RATE:-9600}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      DEV_MODE: ${DEV_MODE:-false}
+    volumes:
+      - sms-gateway-data:/opt/sms-gateway
+      # Bind the host /dev tree so ttyUSB devices remain visible even if the modem
+      # enumerates as a different ttyUSB number after reconnects.
+      - /dev:/dev
+    device_cgroup_rules:
+      - "c 188:* rmw"
+
+volumes:
+  sms-gateway-data:
