@@ -121,6 +121,34 @@ just dev
 ./bin/sms-gateway serve --device-path /dev/ttyUSB0 --jwt-secret your-secret
 ```
 
+### Docker Compose
+
+Build and run the production container:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+The included `docker-compose.yml` pulls the published GHCR image by default, passes configuration through environment variables, persists app state in a named volume mounted at `/opt/sms-gateway`, and exposes the host `/dev` tree with a `ttyUSB` device cgroup rule so the container can open `/dev/ttyUSB*`.
+
+Minimal example:
+
+```bash
+JWT_SECRET=replace-me \
+DEVICE_PATH=/dev/ttyUSB0 \
+IMAGE_VERSION=latest \
+docker compose up -d
+```
+
+Important notes:
+
+- Released container images are published to `ghcr.io/mattboston/sms-gateway` and tagged with the same version string as the release binaries.
+- Set `IMAGE_VERSION` to a release tag such as `0.0.1`, or leave it at `latest`.
+- `DEVICE_PATH` should point at the modem node on the host, for example `/dev/ttyUSB0`.
+- The `/dev:/dev` bind is intentional so reconnects that change the modem from `/dev/ttyUSB0` to another `/dev/ttyUSB*` path do not require editing the Compose file.
+- If your Docker host enforces extra device restrictions beyond the default cgroup rules, you may still need host-specific allowances.
+
 ## Default Login
 
 On first start, a default admin account is created:
