@@ -130,7 +130,7 @@ docker compose pull
 docker compose up -d
 ```
 
-The included [`docker-compose.yml`](/Users/matt/Development/mattboston/sms-gateway.feat-docker-support/docker-compose.yml) pulls the published GHCR image by default, passes configuration through environment variables, persists app state in a named volume mounted at `/opt/sms-gateway`, and exposes the host `/dev` tree with a `ttyUSB` device cgroup rule so the container can open `/dev/ttyUSB*`.
+The included `docker-compose.yml` pulls the published GHCR image by default, passes configuration through environment variables, persists app state in a named volume mounted at `/opt/sms-gateway`, and exposes the host `/dev` tree with a `ttyUSB` device cgroup rule so the container can open `/dev/ttyUSB*`.
 
 Minimal example:
 
