@@ -176,7 +176,7 @@ info:
   contact: {}
   description: REST API for sending and receiving SMS messages via a USB GSM modem.
   license:
-    name: MIT
+    name: GPL-3.0
   title: SMS Gateway API
   version: "1.0"
 paths:
