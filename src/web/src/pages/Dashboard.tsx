@@ -135,7 +135,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-gray-500">Loading dashboard...</p>
+        <p className="text-gray-500 dark:text-[#93a1a1]">Loading dashboard...</p>
       </div>
     );
   }
@@ -145,35 +145,35 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">Dashboard</h1>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Modem Status */}
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <div className="text-sm font-medium text-gray-500">Modem Status</div>
+        <div className="rounded-lg bg-white p-5 shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
+          <div className="text-sm font-medium text-gray-500 dark:text-[#93a1a1]">Modem Status</div>
           <div className="mt-2 flex items-center gap-2">
             <span
               className={`inline-block h-3 w-3 rounded-full ${modemOk ? 'bg-green-500' : 'bg-red-500'}`}
             />
-            <span className={`text-lg font-semibold ${modemOk ? 'text-green-700' : 'text-red-700'}`}>
+            <span className={`text-lg font-semibold ${modemOk ? 'text-green-700 dark:text-[#859900]' : 'text-red-700 dark:text-[#dc322f]'}`}>
               {modemOk ? 'Online' : 'Offline'}
             </span>
           </div>
         </div>
 
         {/* Signal Strength */}
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <div className="text-sm font-medium text-gray-500">Signal Strength</div>
+        <div className="rounded-lg bg-white p-5 shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
+          <div className="text-sm font-medium text-gray-500 dark:text-[#93a1a1]">Signal Strength</div>
           <div className="mt-2 flex items-end gap-1">
             {[1, 2, 3, 4, 5].map((level) => (
               <div
                 key={level}
-                className={`w-2 rounded-sm ${bars >= level ? 'bg-green-500' : 'bg-gray-200'}`}
+                className={`w-2 rounded-sm ${bars >= level ? 'bg-green-500 dark:bg-[#859900]' : 'bg-gray-200 dark:bg-[#586e75]'}`}
                 style={{ height: `${level * 5 + 4}px` }}
               />
             ))}
-            <span className="ml-2 text-sm text-gray-600 capitalize">
+            <span className="ml-2 text-sm text-gray-600 capitalize dark:text-[#93a1a1]">
               {modemSignal ? modemSignal.quality : 'unknown'}
               {modemSignal && modemSignal.quality !== 'unknown' ? ` (${modemSignal.signal})` : ''}
             </span>
@@ -181,35 +181,35 @@ export default function Dashboard() {
         </div>
 
         {/* Total Sent */}
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <div className="text-sm font-medium text-gray-500">Total Sent</div>
-          <div className="mt-2 text-2xl font-bold text-gray-900">{totalSent}</div>
+        <div className="rounded-lg bg-white p-5 shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
+          <div className="text-sm font-medium text-gray-500 dark:text-[#93a1a1]">Total Sent</div>
+          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">{totalSent}</div>
         </div>
 
         {/* Total Received */}
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <div className="text-sm font-medium text-gray-500">Total Received</div>
-          <div className="mt-2 text-2xl font-bold text-gray-900">{totalReceived}</div>
+        <div className="rounded-lg bg-white p-5 shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
+          <div className="text-sm font-medium text-gray-500 dark:text-[#93a1a1]">Total Received</div>
+          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">{totalReceived}</div>
         </div>
       </div>
 
       {/* Pending Messages Banner */}
       {pendingCount > 0 && (
-        <div className="rounded-lg bg-yellow-50 border border-yellow-200 px-4 py-3 text-sm text-yellow-800">
+        <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 dark:border-[#b58900] dark:bg-[#3b3200] dark:text-[#b58900]">
           {pendingCount} message{pendingCount !== 1 ? 's' : ''} pending delivery.
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Quick Send */}
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-800">Quick Send</h2>
+        <div className="rounded-lg bg-white p-5 shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-[#eee8d5]">Quick Send</h2>
           {sendResult && (
             <div
               className={`mt-3 rounded-md p-3 text-sm ${
                 sendResult.type === 'success'
-                  ? 'bg-green-50 text-green-700'
-                  : 'bg-red-50 text-red-700'
+                  ? 'bg-green-50 text-green-700 dark:bg-[#213a25] dark:text-[#859900]'
+                  : 'bg-red-50 text-red-700 dark:bg-[#3b1f23] dark:text-[#dc322f]'
               }`}
             >
               {sendResult.message}
@@ -217,7 +217,7 @@ export default function Dashboard() {
           )}
           <form onSubmit={handleQuickSend} className="mt-4 space-y-3">
             <div>
-              <label htmlFor="quickTo" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="quickTo" className="block text-sm font-medium text-gray-700 dark:text-[#93a1a1]">
                 Phone Number
               </label>
               <input
@@ -227,11 +227,11 @@ export default function Dashboard() {
                 onChange={(e) => setTo(e.target.value)}
                 required
                 placeholder="+1234567890"
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-[#586e75] dark:bg-[#002b36] dark:text-[#eee8d5] dark:focus:border-[#268bd2] dark:focus:ring-[#268bd2]"
               />
             </div>
             <div>
-              <label htmlFor="quickBody" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="quickBody" className="block text-sm font-medium text-gray-700 dark:text-[#93a1a1]">
                 Message
               </label>
               <textarea
@@ -241,13 +241,13 @@ export default function Dashboard() {
                 required
                 rows={3}
                 placeholder="Type your message..."
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-[#586e75] dark:bg-[#002b36] dark:text-[#eee8d5] dark:focus:border-[#268bd2] dark:focus:ring-[#268bd2]"
               />
             </div>
             <button
               type="submit"
               disabled={sending}
-              className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
+              className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 dark:bg-[#268bd2] dark:text-[#fdf6e3] dark:hover:bg-[#2aa5f5] dark:focus:ring-[#268bd2] dark:focus:ring-offset-[#073642]"
             >
               {sending ? 'Sending...' : 'Send SMS'}
             </button>
@@ -255,16 +255,16 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Messages */}
-        <div className="rounded-lg bg-white p-5 shadow-sm lg:col-span-2">
-          <h2 className="text-lg font-semibold text-gray-800">Recent Messages</h2>
+        <div className="rounded-lg bg-white p-5 shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75] lg:col-span-2">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-[#eee8d5]">Recent Messages</h2>
           {recentMessages.length === 0 ? (
-            <p className="mt-4 text-sm text-gray-500">No messages yet.</p>
+            <p className="mt-4 text-sm text-gray-500 dark:text-[#93a1a1]">No messages yet.</p>
           ) : (
-            <div className="mt-4 divide-y divide-gray-100">
+            <div className="mt-4 divide-y divide-gray-100 dark:divide-[#586e75]">
               {recentMessages.map((msg) => (
                 <div
                   key={msg.id}
-                  className="flex items-start justify-between py-3 cursor-pointer hover:bg-gray-50 -mx-2 px-2 rounded transition-colors"
+                  className="flex cursor-pointer items-start justify-between rounded px-2 py-3 transition-colors -mx-2 hover:bg-gray-50 dark:hover:bg-[#0a4452]"
                   onClick={() => navigate(`/messages/${msg.id}`)}
                 >
                   <div className="min-w-0 flex-1">
@@ -272,28 +272,28 @@ export default function Dashboard() {
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                           msg.direction === 'inbound'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-gray-100 text-gray-700'
+                            ? 'bg-blue-100 text-blue-700 dark:bg-[#1f3e52] dark:text-[#268bd2]'
+                            : 'bg-gray-100 text-gray-700 dark:bg-[#586e75] dark:text-[#eee8d5]'
                         }`}
                       >
                         {msg.direction === 'inbound' ? 'IN' : 'OUT'}
                       </span>
-                      <span className={`text-sm ${msg.direction === 'inbound' && msg.status === 'received' ? 'font-bold text-gray-900' : 'font-medium text-gray-900'}`}>{msg.phone_number}</span>
+                      <span className={`text-sm ${msg.direction === 'inbound' && msg.status === 'received' ? 'font-bold text-gray-900 dark:text-[#fdf6e3]' : 'font-medium text-gray-900 dark:text-[#eee8d5]'}`}>{msg.phone_number}</span>
                       {msg.direction === 'inbound' && (
                         <span
                           className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium ${
                             msg.status === 'received'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-gray-100 text-gray-600'
+                              ? 'bg-blue-100 text-blue-800 dark:bg-[#1f3e52] dark:text-[#268bd2]'
+                              : 'bg-gray-100 text-gray-600 dark:bg-[#586e75] dark:text-[#93a1a1]'
                           }`}
                         >
                           {msg.status === 'received' ? 'Unread' : 'Read'}
                         </span>
                       )}
                     </div>
-                    <p className={`mt-0.5 truncate text-sm ${msg.direction === 'inbound' && msg.status === 'received' ? 'font-semibold text-gray-900' : 'text-gray-600'}`}>{msg.body}</p>
+                    <p className={`mt-0.5 truncate text-sm ${msg.direction === 'inbound' && msg.status === 'received' ? 'font-semibold text-gray-900 dark:text-[#fdf6e3]' : 'text-gray-600 dark:text-[#93a1a1]'}`}>{msg.body}</p>
                   </div>
-                  <span className="ml-4 shrink-0 text-xs text-gray-400">
+                  <span className="ml-4 shrink-0 text-xs text-gray-400 dark:text-[#93a1a1]">
                     {formatRelativeTime(msg.created_at)}
                   </span>
                 </div>

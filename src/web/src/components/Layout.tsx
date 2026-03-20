@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
+import ThemeModeControl from '@/components/ThemeModeControl';
 
 const navItems = [
   { to: '/', label: 'Dashboard' },
@@ -23,7 +24,7 @@ export default function Layout() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 dark:bg-[#002b36]">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -34,14 +35,14 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-30 w-64 transform bg-gray-900 text-white transition-transform duration-200 lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-30 w-64 transform bg-gray-900 text-white transition-transform duration-200 lg:static lg:translate-x-0 dark:bg-[#073642] dark:text-[#93a1a1] ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex h-16 items-center justify-between px-6 border-b border-gray-700">
+        <div className="flex h-16 items-center justify-between border-b border-gray-700 px-6 dark:border-[#586e75]">
           <span className="text-lg font-semibold">SMS Gateway</span>
           <button
-            className="lg:hidden text-gray-400 hover:text-white"
+            className="lg:hidden text-gray-400 hover:text-white dark:text-[#93a1a1] dark:hover:text-[#fdf6e3]"
             onClick={() => setSidebarOpen(false)}
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -64,8 +65,8 @@ export default function Layout() {
               className={({ isActive }) =>
                 `block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-gray-800 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    ? 'bg-gray-800 text-white dark:bg-[#0a4452] dark:text-[#fdf6e3]'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white dark:text-[#93a1a1] dark:hover:bg-[#0a4452] dark:hover:text-[#fdf6e3]'
                 }`
               }
             >
@@ -78,9 +79,9 @@ export default function Layout() {
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
+        <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 dark:border-[#586e75] dark:bg-[#002b36]">
           <button
-            className="lg:hidden text-gray-600 hover:text-gray-900"
+            className="lg:hidden text-gray-600 hover:text-gray-900 dark:text-[#93a1a1] dark:hover:text-[#fdf6e3]"
             onClick={() => setSidebarOpen(true)}
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -94,10 +95,11 @@ export default function Layout() {
           </button>
           <div className="flex-1 lg:ml-0" />
           <div className="flex items-center gap-4">
-            {user && <span className="text-sm text-gray-600">{user.username}</span>}
+            <ThemeModeControl />
+            {user && <span className="text-sm text-gray-600 dark:text-[#93a1a1]">{user.username}</span>}
             <button
               onClick={handleLogout}
-              className="rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
+              className="rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-[#073642] dark:text-[#93a1a1] dark:hover:bg-[#0a4452]"
             >
               Logout
             </button>

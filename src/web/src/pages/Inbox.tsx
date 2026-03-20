@@ -30,11 +30,11 @@ function formatRelativeTime(dateStr: string): string {
 function statusBadge(status: string) {
   switch (status) {
     case 'received':
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-blue-100 text-blue-800 dark:bg-[#1f3e52] dark:text-[#268bd2]';
     case 'read':
-      return 'bg-gray-100 text-gray-600';
+      return 'bg-gray-100 text-gray-600 dark:bg-[#586e75] dark:text-[#93a1a1]';
     default:
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-gray-100 text-gray-800 dark:bg-[#586e75] dark:text-[#eee8d5]';
   }
 }
 
@@ -111,7 +111,7 @@ export default function Inbox() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-gray-500">Loading inbox...</p>
+        <p className="text-gray-500 dark:text-[#93a1a1]">Loading inbox...</p>
       </div>
     );
   }
@@ -119,7 +119,7 @@ export default function Inbox() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Inbox</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">Inbox</h1>
         {selected.size > 0 && (
           <button
             onClick={handleDelete}
@@ -132,14 +132,14 @@ export default function Inbox() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-[#3b1f23] dark:text-[#dc322f]">{error}</div>
       )}
 
-      <div className="rounded-lg bg-white shadow-sm">
+      <div className="rounded-lg bg-white shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <svg
-              className="h-12 w-12 text-gray-300"
+              className="h-12 w-12 text-gray-300 dark:text-[#586e75]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -151,14 +151,14 @@ export default function Inbox() {
                 d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
               />
             </svg>
-            <p className="mt-3 text-sm font-medium text-gray-900">No messages</p>
-            <p className="mt-1 text-sm text-gray-500">Your inbox is empty.</p>
+            <p className="mt-3 text-sm font-medium text-gray-900 dark:text-[#fdf6e3]">No messages</p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-[#93a1a1]">Your inbox is empty.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-xs font-medium uppercase text-gray-500">
+                <tr className="border-b border-gray-200 text-left text-xs font-medium uppercase text-gray-500 dark:border-[#586e75] dark:text-[#93a1a1]">
                   <th className="px-3 py-3 w-10">
                     <input
                       type="checkbox"
@@ -173,11 +173,11 @@ export default function Inbox() {
                   <th className="px-5 py-3">Time</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-[#586e75]">
                 {messages.map((msg) => (
                   <tr
                     key={msg.id}
-                    className={`cursor-pointer hover:bg-gray-50 transition-colors ${msg.status === 'received' ? 'bg-blue-50/40' : ''}`}
+                    className={`cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-[#0a4452] ${msg.status === 'received' ? 'bg-blue-50/40 dark:bg-[#1f3e52]/40' : ''}`}
                   >
                     <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
                       <input
@@ -188,13 +188,13 @@ export default function Inbox() {
                       />
                     </td>
                     <td
-                      className={`px-5 py-4 whitespace-nowrap ${msg.status === 'received' ? 'font-bold text-gray-900' : 'font-medium text-gray-500'}`}
+                      className={`px-5 py-4 whitespace-nowrap ${msg.status === 'received' ? 'font-bold text-gray-900 dark:text-[#fdf6e3]' : 'font-medium text-gray-500 dark:text-[#93a1a1]'}`}
                       onClick={() => navigate(`/messages/${msg.id}`)}
                     >
                       {msg.phone_number}
                     </td>
                     <td
-                      className={`px-5 py-4 max-w-md truncate ${msg.status === 'received' ? 'font-semibold text-gray-900' : 'text-gray-500'}`}
+                      className={`px-5 py-4 max-w-md truncate ${msg.status === 'received' ? 'font-semibold text-gray-900 dark:text-[#fdf6e3]' : 'text-gray-500 dark:text-[#93a1a1]'}`}
                       onClick={() => navigate(`/messages/${msg.id}`)}
                     >
                       {msg.body}
@@ -210,7 +210,7 @@ export default function Inbox() {
                       </span>
                     </td>
                     <td
-                      className="px-5 py-4 text-gray-400 whitespace-nowrap"
+                      className="px-5 py-4 text-gray-400 whitespace-nowrap dark:text-[#93a1a1]"
                       onClick={() => navigate(`/messages/${msg.id}`)}
                     >
                       {formatRelativeTime(msg.created_at)}

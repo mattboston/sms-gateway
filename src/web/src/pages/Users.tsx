@@ -79,8 +79,8 @@ export default function Users() {
   if (!isCurrentUserAdmin) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-        <div className="mt-4 rounded-md bg-red-50 p-4 text-sm text-red-700">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">Users</h1>
+        <div className="mt-4 rounded-md bg-red-50 p-4 text-sm text-red-700 dark:bg-[#3b1f23] dark:text-[#dc322f]">
           You do not have permission to view this page. Admin access is required.
         </div>
       </div>
@@ -89,23 +89,23 @@ export default function Users() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-      <p className="mt-1 text-sm text-gray-600">Manage user accounts.</p>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">Users</h1>
+      <p className="mt-1 text-sm text-gray-600 dark:text-[#93a1a1]">Manage user accounts.</p>
 
       {error && (
-        <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-[#3b1f23] dark:text-[#dc322f]">{error}</div>
       )}
       {success && (
-        <div className="mt-4 rounded-md bg-green-50 p-3 text-sm text-green-700">{success}</div>
+        <div className="mt-4 rounded-md bg-green-50 p-3 text-sm text-green-700 dark:bg-[#213a25] dark:text-[#859900]">{success}</div>
       )}
 
       {/* Create user form */}
-      <div className="mt-6 rounded-lg bg-white p-6 shadow-md">
-        <h2 className="mb-4 text-lg font-semibold text-gray-800">Create New User</h2>
+      <div className="mt-6 rounded-lg bg-white p-6 shadow-md dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
+        <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-[#eee8d5]">Create New User</h2>
         <form onSubmit={handleCreate} className="space-y-4">
           <div className="flex flex-col gap-4 sm:flex-row">
             <div className="flex-1">
-              <label htmlFor="newUsername" className="mb-1 block text-sm font-medium text-gray-700">
+              <label htmlFor="newUsername" className="mb-1 block text-sm font-medium text-gray-700 dark:text-[#93a1a1]">
                 Username
               </label>
               <input
@@ -115,11 +115,11 @@ export default function Users() {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 placeholder="Enter username"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-[#586e75] dark:bg-[#002b36] dark:text-[#eee8d5] dark:focus:border-[#268bd2] dark:focus:ring-[#268bd2]"
               />
             </div>
             <div className="flex-1">
-              <label htmlFor="newPassword" className="mb-1 block text-sm font-medium text-gray-700">
+              <label htmlFor="newPassword" className="mb-1 block text-sm font-medium text-gray-700 dark:text-[#93a1a1]">
                 Password
               </label>
               <input
@@ -130,7 +130,7 @@ export default function Users() {
                 required
                 minLength={8}
                 placeholder="Minimum 8 characters"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-[#586e75] dark:bg-[#002b36] dark:text-[#eee8d5] dark:focus:border-[#268bd2] dark:focus:ring-[#268bd2]"
               />
             </div>
           </div>
@@ -142,14 +142,14 @@ export default function Users() {
               onChange={(e) => setIsAdmin(e.target.checked)}
               className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            <label htmlFor="isAdmin" className="text-sm font-medium text-gray-700">
+            <label htmlFor="isAdmin" className="text-sm font-medium text-gray-700 dark:text-[#93a1a1]">
               Administrator
             </label>
           </div>
           <button
             type="submit"
             disabled={creating}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 dark:bg-[#268bd2] dark:text-[#fdf6e3] dark:hover:bg-[#2aa5f5] dark:focus:ring-[#268bd2] dark:focus:ring-offset-[#073642]"
           >
             {creating ? 'Creating...' : 'Create User'}
           </button>
@@ -157,33 +157,33 @@ export default function Users() {
       </div>
 
       {/* Users table */}
-      <div className="mt-6 rounded-lg bg-white shadow-md overflow-hidden">
+      <div className="mt-6 overflow-hidden rounded-lg bg-white shadow-md dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
         {loading ? (
-          <div className="p-6 text-center text-sm text-gray-500">Loading users...</div>
+          <div className="p-6 text-center text-sm text-gray-500 dark:text-[#93a1a1]">Loading users...</div>
         ) : users.length === 0 ? (
-          <div className="p-6 text-center text-sm text-gray-500">No users found.</div>
+          <div className="p-6 text-center text-sm text-gray-500 dark:text-[#93a1a1]">No users found.</div>
         ) : (
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50">
+            <thead className="border-b border-gray-200 bg-gray-50 dark:border-[#586e75] dark:bg-[#002b36]">
               <tr>
-                <th className="px-6 py-3 font-medium text-gray-600">Username</th>
-                <th className="px-6 py-3 font-medium text-gray-600">Role</th>
-                <th className="px-6 py-3 font-medium text-gray-600">Created</th>
+                <th className="px-6 py-3 font-medium text-gray-600 dark:text-[#93a1a1]">Username</th>
+                <th className="px-6 py-3 font-medium text-gray-600 dark:text-[#93a1a1]">Role</th>
+                <th className="px-6 py-3 font-medium text-gray-600 dark:text-[#93a1a1]">Created</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-[#586e75]">
               {users.map((u) => (
                 <tr
                   key={u.id}
                   className={
                     u.id === currentUser?.id
-                      ? 'bg-blue-50 hover:bg-blue-100'
-                      : 'hover:bg-gray-50'
+                      ? 'bg-blue-50 hover:bg-blue-100 dark:bg-[#1f3e52] dark:hover:bg-[#24506a]'
+                      : 'hover:bg-gray-50 dark:hover:bg-[#0a4452]'
                   }
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">{u.username}</span>
+                      <span className="font-medium text-gray-900 dark:text-[#eee8d5]">{u.username}</span>
                       {u.id === currentUser?.id && (
                         <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
                           You
@@ -202,7 +202,7 @@ export default function Users() {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-gray-600">{formatDate(u.created_at)}</td>
+                    <td className="px-6 py-4 text-gray-600 dark:text-[#93a1a1]">{formatDate(u.created_at)}</td>
                 </tr>
               ))}
             </tbody>

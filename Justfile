@@ -7,7 +7,7 @@ dev:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'kill 0' EXIT
-    (cd src && go run ./cmd/sms-gateway serve --dev-mode) &
+    (cd src && go run ./cmd/sms-gateway serve --dev-mode --db-dsn ./sms-gateway.db) &
     (cd src/web && npm run dev) &
     wait
 

@@ -37,4 +37,7 @@ Thumbs.db
 
 # Worktrees
 .worktrees/
+
+# Database
+sms-gateway.db
 src/sms-gateway.db*
