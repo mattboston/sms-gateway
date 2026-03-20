@@ -11,7 +11,7 @@ const docTemplate = `{
         "title": "{{.Title}}",
         "contact": {},
         "license": {
-            "name": "MIT"
+            "name": "GPL-3.0"
         },
         "version": "{{.Version}}"
     },

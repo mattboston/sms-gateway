@@ -31,12 +31,12 @@ const SMS_CHAR_LIMIT = 160;
 
 function statusBadge(status: string) {
   const styles: Record<string, string> = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    sending: 'bg-blue-100 text-blue-800',
-    sent: 'bg-green-100 text-green-800',
-    failed: 'bg-red-100 text-red-800',
+    pending: 'bg-yellow-100 text-yellow-800 dark:bg-[#3b3200] dark:text-[#b58900]',
+    sending: 'bg-blue-100 text-blue-800 dark:bg-[#1f3e52] dark:text-[#268bd2]',
+    sent: 'bg-green-100 text-green-800 dark:bg-[#213a25] dark:text-[#859900]',
+    failed: 'bg-red-100 text-red-800 dark:bg-[#3b1f23] dark:text-[#dc322f]',
   };
-  return styles[status] ?? 'bg-gray-100 text-gray-800';
+  return styles[status] ?? 'bg-gray-100 text-gray-800 dark:bg-[#586e75] dark:text-[#eee8d5]';
 }
 
 export default function SendSMS() {
@@ -89,14 +89,14 @@ export default function SendSMS() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Send SMS</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">Send SMS</h1>
 
       {/* Send Form */}
-      <div className="rounded-lg bg-white p-6 shadow-sm max-w-2xl">
+      <div className="max-w-2xl rounded-lg bg-white p-6 shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
         {result && (
           <div
             className={`mb-4 rounded-md p-3 text-sm ${
-              result.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+              result.type === 'success' ? 'bg-green-50 text-green-700 dark:bg-[#213a25] dark:text-[#859900]' : 'bg-red-50 text-red-700 dark:bg-[#3b1f23] dark:text-[#dc322f]'
             }`}
           >
             {result.message}
@@ -104,7 +104,7 @@ export default function SendSMS() {
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="to" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="to" className="block text-sm font-medium text-gray-700 dark:text-[#93a1a1]">
               Phone Number
             </label>
             <input
@@ -114,11 +114,11 @@ export default function SendSMS() {
               onChange={(e) => setTo(e.target.value)}
               required
               placeholder="+1234567890"
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-[#586e75] dark:bg-[#002b36] dark:text-[#eee8d5] dark:focus:border-[#268bd2] dark:focus:ring-[#268bd2]"
             />
           </div>
           <div>
-            <label htmlFor="body" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="body" className="block text-sm font-medium text-gray-700 dark:text-[#93a1a1]">
               Message
             </label>
             <textarea
@@ -130,12 +130,12 @@ export default function SendSMS() {
               placeholder="Type your message..."
               className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
                 overLimit
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-[#dc322f] dark:bg-[#002b36] dark:text-[#eee8d5] dark:focus:border-[#dc322f] dark:focus:ring-[#dc322f]'
+                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-[#586e75] dark:bg-[#002b36] dark:text-[#eee8d5] dark:focus:border-[#268bd2] dark:focus:ring-[#268bd2]'
               }`}
             />
             <div className="mt-1 flex justify-between text-xs">
-              <span className={overLimit ? 'text-red-600 font-medium' : 'text-gray-400'}>
+              <span className={overLimit ? 'text-red-600 font-medium dark:text-[#dc322f]' : 'text-gray-400 dark:text-[#93a1a1]'}>
                 {charCount}/{SMS_CHAR_LIMIT} characters
                 {overLimit && ' - message may be split into multiple SMS'}
               </span>
@@ -144,7 +144,7 @@ export default function SendSMS() {
           <button
             type="submit"
             disabled={sending || !to || !body}
-            className="rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
+            className="rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 dark:bg-[#268bd2] dark:text-[#fdf6e3] dark:hover:bg-[#2aa5f5] dark:focus:ring-[#268bd2] dark:focus:ring-offset-[#073642]"
           >
             {sending ? 'Sending...' : 'Send Message'}
           </button>
@@ -152,32 +152,32 @@ export default function SendSMS() {
       </div>
 
       {/* Recent Sent Messages */}
-      <div className="rounded-lg bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-800">Recent Sent Messages</h2>
+      <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-[#eee8d5]">Recent Sent Messages</h2>
         {loadingMessages ? (
-          <p className="mt-4 text-sm text-gray-500">Loading...</p>
+          <p className="mt-4 text-sm text-gray-500 dark:text-[#93a1a1]">Loading...</p>
         ) : sentMessages.length === 0 ? (
-          <p className="mt-4 text-sm text-gray-500">No sent messages yet.</p>
+          <p className="mt-4 text-sm text-gray-500 dark:text-[#93a1a1]">No sent messages yet.</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 text-left text-xs font-medium uppercase text-gray-500">
+                <tr className="border-b border-gray-200 text-left text-xs font-medium uppercase text-gray-500 dark:border-[#586e75] dark:text-[#93a1a1]">
                   <th className="pb-2 pr-4">To</th>
                   <th className="pb-2 pr-4">Message</th>
                   <th className="pb-2 pr-4">Status</th>
                   <th className="pb-2">Time</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-[#586e75]">
                 {sentMessages.map((msg) => (
                   <tr
                     key={msg.id}
-                    className="cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-[#0a4452]"
                     onClick={() => navigate(`/messages/${msg.id}`)}
                   >
-                    <td className="py-3 pr-4 font-medium text-gray-900">{msg.phone_number}</td>
-                    <td className="py-3 pr-4 text-gray-600 max-w-xs truncate">{msg.body}</td>
+                    <td className="py-3 pr-4 font-medium text-gray-900 dark:text-[#eee8d5]">{msg.phone_number}</td>
+                    <td className="py-3 pr-4 text-gray-600 max-w-xs truncate dark:text-[#93a1a1]">{msg.body}</td>
                     <td className="py-3 pr-4">
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(msg.status)}`}
@@ -185,7 +185,7 @@ export default function SendSMS() {
                         {msg.status}
                       </span>
                     </td>
-                    <td className="py-3 text-gray-400">{formatRelativeTime(msg.created_at)}</td>
+                    <td className="py-3 text-gray-400 dark:text-[#93a1a1]">{formatRelativeTime(msg.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

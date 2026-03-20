@@ -27,7 +27,7 @@ function SignalBars({ strength }: { strength: number }) {
         <div
           key={level}
           className={`w-2 rounded-sm transition-colors ${
-            level <= bars ? 'bg-green-500' : 'bg-gray-200'
+            level <= bars ? 'bg-green-500 dark:bg-[#859900]' : 'bg-gray-200 dark:bg-[#586e75]'
           }`}
           style={{ height: `${level * 6 + 4}px` }}
         />
@@ -133,13 +133,13 @@ export default function ModemTest() {
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Modem Test</h1>
-          <p className="mt-1 text-sm text-gray-600">Test modem connectivity and AT commands.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">Modem Test</h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-[#93a1a1]">Test modem connectivity and AT commands.</p>
         </div>
         <button
           onClick={handleRefresh}
           disabled={statusLoading || signalLoading}
-          className="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
+          className="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 dark:bg-[#073642] dark:text-[#93a1a1] dark:hover:bg-[#0a4452] dark:focus:ring-[#268bd2] dark:focus:ring-offset-[#002b36]"
         >
           {statusLoading || signalLoading ? 'Refreshing...' : 'Refresh'}
         </button>
@@ -148,12 +148,12 @@ export default function ModemTest() {
       {/* Status and Signal cards */}
       <div className="mt-6 grid gap-6 sm:grid-cols-2">
         {/* Modem Status */}
-        <div className="rounded-lg bg-white p-6 shadow-md">
-          <h2 className="mb-4 text-lg font-semibold text-gray-800">Modem Status</h2>
+        <div className="rounded-lg bg-white p-6 shadow-md dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
+          <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-[#eee8d5]">Modem Status</h2>
           {statusLoading ? (
-            <p className="text-sm text-gray-500">Loading...</p>
+            <p className="text-sm text-gray-500 dark:text-[#93a1a1]">Loading...</p>
           ) : statusError ? (
-            <p className="text-sm text-red-600">{statusError}</p>
+            <p className="text-sm text-red-600 dark:text-[#dc322f]">{statusError}</p>
           ) : status ? (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -162,31 +162,31 @@ export default function ModemTest() {
                     status.status === 'ok' ? 'bg-green-500' : 'bg-red-500'
                   }`}
                 />
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-sm font-medium text-gray-900 dark:text-[#eee8d5]">
                   {status.status === 'ok' ? 'Connected' : 'Disconnected'}
                 </span>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-500">No status data available.</p>
+            <p className="text-sm text-gray-500 dark:text-[#93a1a1]">No status data available.</p>
           )}
         </div>
 
         {/* Signal Strength */}
-        <div className="rounded-lg bg-white p-6 shadow-md">
-          <h2 className="mb-4 text-lg font-semibold text-gray-800">Signal Strength</h2>
+        <div className="rounded-lg bg-white p-6 shadow-md dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
+          <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-[#eee8d5]">Signal Strength</h2>
           {signalLoading ? (
-            <p className="text-sm text-gray-500">Loading...</p>
+            <p className="text-sm text-gray-500 dark:text-[#93a1a1]">Loading...</p>
           ) : signalError ? (
-            <p className="text-sm text-red-600">{signalError}</p>
+            <p className="text-sm text-red-600 dark:text-[#dc322f]">{signalError}</p>
           ) : signal ? (
             <div className="space-y-3">
               <div className="flex items-center gap-4">
                 <SignalBars strength={signal.signal} />
-                <span className="text-2xl font-bold text-gray-900">
+                <span className="text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">
                   {signal.signal}
                 </span>
-                <span className="text-sm text-gray-500">/ 31</span>
+                <span className="text-sm text-gray-500 dark:text-[#93a1a1]">/ 31</span>
               </div>
               <div>
                 <span
@@ -203,18 +203,18 @@ export default function ModemTest() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-500">No signal data available.</p>
+            <p className="text-sm text-gray-500 dark:text-[#93a1a1]">No signal data available.</p>
           )}
         </div>
       </div>
 
       {/* AT Command Section - Admin only */}
       {isAdmin && (
-        <div className="mt-6 rounded-lg bg-white p-6 shadow-md">
-          <h2 className="mb-4 text-lg font-semibold text-gray-800">AT Command</h2>
+        <div className="mt-6 rounded-lg bg-white p-6 shadow-md dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
+          <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-[#eee8d5]">AT Command</h2>
           <form onSubmit={handleSendCommand} className="flex items-end gap-3">
             <div className="flex-1">
-              <label htmlFor="atCommand" className="mb-1 block text-sm font-medium text-gray-700">
+              <label htmlFor="atCommand" className="mb-1 block text-sm font-medium text-gray-700 dark:text-[#93a1a1]">
                 Command
               </label>
               <input
@@ -224,20 +224,20 @@ export default function ModemTest() {
                 onChange={(e) => setCommand(e.target.value)}
                 required
                 placeholder="e.g. AT+CSQ"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-[#586e75] dark:bg-[#002b36] dark:text-[#eee8d5] dark:focus:border-[#268bd2] dark:focus:ring-[#268bd2]"
               />
             </div>
             <button
               type="submit"
               disabled={sending}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
+              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 dark:bg-[#268bd2] dark:text-[#fdf6e3] dark:hover:bg-[#2aa5f5] dark:focus:ring-[#268bd2] dark:focus:ring-offset-[#073642]"
             >
               {sending ? 'Sending...' : 'Send'}
             </button>
           </form>
 
           {commandError && (
-            <div className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700">
+            <div className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-[#3b1f23] dark:text-[#dc322f]">
               {commandError}
             </div>
           )}
@@ -245,11 +245,11 @@ export default function ModemTest() {
           {/* Command History */}
           {history.length > 0 && (
             <div className="mt-6">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-700">Command History</h3>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-[#93a1a1]">Command History</h3>
                 <button
                   onClick={() => setHistory([])}
-                  className="text-xs text-gray-500 hover:text-gray-700"
+                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-[#93a1a1] dark:hover:text-[#eee8d5]"
                 >
                   Clear
                 </button>
@@ -258,11 +258,11 @@ export default function ModemTest() {
                 {history.map((entry, index) => (
                   <div
                     key={index}
-                    className="rounded-md border border-gray-200 bg-gray-50 p-3"
+                    className="rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-[#586e75] dark:bg-[#002b36]"
                   >
                     <div className="mb-1 flex items-center justify-between">
                       <code className="text-sm font-semibold text-blue-700">{entry.command}</code>
-                      <span className="text-xs text-gray-400">{formatTime(entry.timestamp)}</span>
+                      <span className="text-xs text-gray-400 dark:text-[#93a1a1]">{formatTime(entry.timestamp)}</span>
                     </div>
                     <pre className="whitespace-pre-wrap rounded bg-gray-900 p-3 font-mono text-xs text-green-400 overflow-x-auto">
                       {entry.response}

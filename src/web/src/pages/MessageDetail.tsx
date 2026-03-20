@@ -45,14 +45,14 @@ function formatRelativeTime(dateStr: string): string {
 
 function statusBadge(status: string) {
   const styles: Record<string, string> = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    sending: 'bg-blue-100 text-blue-800',
-    sent: 'bg-green-100 text-green-800',
-    failed: 'bg-red-100 text-red-800',
-    received: 'bg-blue-100 text-blue-800',
-    read: 'bg-gray-100 text-gray-600',
+    pending: 'bg-yellow-100 text-yellow-800 dark:bg-[#3b3200] dark:text-[#b58900]',
+    sending: 'bg-blue-100 text-blue-800 dark:bg-[#1f3e52] dark:text-[#268bd2]',
+    sent: 'bg-green-100 text-green-800 dark:bg-[#213a25] dark:text-[#859900]',
+    failed: 'bg-red-100 text-red-800 dark:bg-[#3b1f23] dark:text-[#dc322f]',
+    received: 'bg-blue-100 text-blue-800 dark:bg-[#1f3e52] dark:text-[#268bd2]',
+    read: 'bg-gray-100 text-gray-600 dark:bg-[#586e75] dark:text-[#93a1a1]',
   };
-  return styles[status] ?? 'bg-gray-100 text-gray-800';
+  return styles[status] ?? 'bg-gray-100 text-gray-800 dark:bg-[#586e75] dark:text-[#eee8d5]';
 }
 
 function statusLabel(status: string) {
@@ -91,7 +91,7 @@ export default function MessageDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-gray-500">Loading message...</p>
+        <p className="text-gray-500 dark:text-[#93a1a1]">Loading message...</p>
       </div>
     );
   }
@@ -101,11 +101,11 @@ export default function MessageDetail() {
       <div className="space-y-4">
         <button
           onClick={() => navigate(-1)}
-          className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+          className="text-sm text-blue-600 transition-colors hover:text-blue-800 dark:text-[#268bd2] dark:hover:text-[#2aa5f5]"
         >
           &larr; Back
         </button>
-        <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-md bg-red-50 p-4 text-sm text-red-700 dark:bg-[#3b1f23] dark:text-[#dc322f]">
           {error || 'Message not found.'}
         </div>
       </div>
@@ -172,7 +172,7 @@ export default function MessageDetail() {
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate(backPath)}
-          className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+          className="text-sm text-blue-600 transition-colors hover:text-blue-800 dark:text-[#268bd2] dark:hover:text-[#2aa5f5]"
         >
           &larr; Back to {backLabel}
         </button>
@@ -181,7 +181,7 @@ export default function MessageDetail() {
             <button
               onClick={handleToggleRead}
               disabled={togglingRead}
-              className="inline-flex items-center rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+              className="inline-flex items-center rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50 dark:bg-[#073642] dark:text-[#93a1a1] dark:hover:bg-[#0a4452]"
             >
               {togglingRead
                 ? 'Updating...'
@@ -200,9 +200,9 @@ export default function MessageDetail() {
         </div>
       </div>
 
-      <div className="rounded-lg bg-white p-6 shadow-sm">
+      <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
         <div className="flex items-start justify-between">
-          <h1 className="text-xl font-bold text-gray-900">Message Detail</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-[#fdf6e3]">Message Detail</h1>
           <span
             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadge(message.status)}`}
           >
@@ -213,12 +213,12 @@ export default function MessageDetail() {
         <div className="mt-6 space-y-4">
           {/* Direction */}
           <div className="flex items-center gap-3">
-            <span className="w-28 shrink-0 text-sm font-medium text-gray-500">Direction</span>
+            <span className="w-28 shrink-0 text-sm font-medium text-gray-500 dark:text-[#93a1a1]">Direction</span>
             <span
               className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                 message.direction === 'inbound'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-gray-100 text-gray-700'
+                  ? 'bg-blue-100 text-blue-700 dark:bg-[#1f3e52] dark:text-[#268bd2]'
+                  : 'bg-gray-100 text-gray-700 dark:bg-[#586e75] dark:text-[#eee8d5]'
               }`}
             >
               {message.direction === 'inbound' ? 'Inbound' : 'Outbound'}
@@ -227,55 +227,55 @@ export default function MessageDetail() {
 
           {/* Phone Number */}
           <div className="flex items-center gap-3">
-            <span className="w-28 shrink-0 text-sm font-medium text-gray-500">{phoneLabel}</span>
-            <span className="text-sm text-gray-900 font-medium">{message.phone_number}</span>
+            <span className="w-28 shrink-0 text-sm font-medium text-gray-500 dark:text-[#93a1a1]">{phoneLabel}</span>
+            <span className="text-sm text-gray-900 font-medium dark:text-[#eee8d5]">{message.phone_number}</span>
           </div>
 
           {/* Message Body */}
           <div className="flex gap-3">
-            <span className="w-28 shrink-0 text-sm font-medium text-gray-500 pt-0.5">Message</span>
-            <p className="text-sm text-gray-900 whitespace-pre-wrap">{message.body}</p>
+            <span className="w-28 shrink-0 pt-0.5 text-sm font-medium text-gray-500 dark:text-[#93a1a1]">Message</span>
+            <p className="text-sm text-gray-900 whitespace-pre-wrap dark:text-[#eee8d5]">{message.body}</p>
           </div>
 
           {/* Created At */}
           <div className="flex items-center gap-3">
-            <span className="w-28 shrink-0 text-sm font-medium text-gray-500">Created</span>
-            <span className="text-sm text-gray-900">
+            <span className="w-28 shrink-0 text-sm font-medium text-gray-500 dark:text-[#93a1a1]">Created</span>
+            <span className="text-sm text-gray-900 dark:text-[#eee8d5]">
               {formatDateTime(message.created_at)}{' '}
-              <span className="text-gray-400">({formatRelativeTime(message.created_at)})</span>
+              <span className="text-gray-400 dark:text-[#93a1a1]">({formatRelativeTime(message.created_at)})</span>
             </span>
           </div>
 
           {/* Updated At */}
           <div className="flex items-center gap-3">
-            <span className="w-28 shrink-0 text-sm font-medium text-gray-500">Updated</span>
-            <span className="text-sm text-gray-900">
+            <span className="w-28 shrink-0 text-sm font-medium text-gray-500 dark:text-[#93a1a1]">Updated</span>
+            <span className="text-sm text-gray-900 dark:text-[#eee8d5]">
               {formatDateTime(message.updated_at)}{' '}
-              <span className="text-gray-400">({formatRelativeTime(message.updated_at)})</span>
+              <span className="text-gray-400 dark:text-[#93a1a1]">({formatRelativeTime(message.updated_at)})</span>
             </span>
           </div>
 
           {/* Message ID */}
           <div className="flex items-center gap-3">
-            <span className="w-28 shrink-0 text-sm font-medium text-gray-500">ID</span>
-            <span className="text-sm text-gray-500 font-mono">{message.id}</span>
+            <span className="w-28 shrink-0 text-sm font-medium text-gray-500 dark:text-[#93a1a1]">ID</span>
+            <span className="text-sm text-gray-500 font-mono dark:text-[#93a1a1]">{message.id}</span>
           </div>
         </div>
       </div>
 
       {/* Reply Section */}
       {message.direction === 'inbound' && (
-        <div className="rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-800">Reply</h2>
-          <p className="mt-1 text-sm text-gray-500">
+        <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-[#eee8d5]">Reply</h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-[#93a1a1]">
             Replying to {message.phone_number}
           </p>
           {replyResult && (
             <div
               className={`mt-3 rounded-md p-3 text-sm ${
                 replyResult.type === 'success'
-                  ? 'bg-green-50 text-green-700'
-                  : 'bg-red-50 text-red-700'
+                  ? 'bg-green-50 text-green-700 dark:bg-[#213a25] dark:text-[#859900]'
+                  : 'bg-red-50 text-red-700 dark:bg-[#3b1f23] dark:text-[#dc322f]'
               }`}
             >
               {replyResult.message}
@@ -283,7 +283,7 @@ export default function MessageDetail() {
           )}
           <form onSubmit={handleReply} className="mt-4 space-y-3">
             <div>
-              <label htmlFor="replyBody" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="replyBody" className="block text-sm font-medium text-gray-700 dark:text-[#93a1a1]">
                 Message
               </label>
               <textarea
@@ -293,13 +293,13 @@ export default function MessageDetail() {
                 required
                 rows={3}
                 placeholder="Type your reply..."
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-[#586e75] dark:bg-[#002b36] dark:text-[#eee8d5] dark:focus:border-[#268bd2] dark:focus:ring-[#268bd2]"
               />
             </div>
             <button
               type="submit"
               disabled={replySending}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
+              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 dark:bg-[#268bd2] dark:text-[#fdf6e3] dark:hover:bg-[#2aa5f5] dark:focus:ring-[#268bd2] dark:focus:ring-offset-[#073642]"
             >
               {replySending ? 'Sending...' : 'Send Reply'}
             </button>
@@ -309,14 +309,14 @@ export default function MessageDetail() {
 
       {/* Debug Section */}
       {hasDebugInfo && (
-        <div className="rounded-lg bg-white shadow-sm">
+        <div className="rounded-lg bg-white shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
           <button
             onClick={() => setDebugOpen(!debugOpen)}
-            className="flex w-full items-center justify-between px-6 py-4 text-left transition-colors hover:bg-gray-50"
+            className="flex w-full items-center justify-between px-6 py-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-[#0a4452]"
           >
-            <span className="text-sm font-medium text-gray-700">Debug Information</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-[#93a1a1]">Debug Information</span>
             <svg
-              className={`h-5 w-5 text-gray-400 transition-transform ${debugOpen ? 'rotate-180' : ''}`}
+              className={`h-5 w-5 text-gray-400 transition-transform dark:text-[#93a1a1] ${debugOpen ? 'rotate-180' : ''}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -325,23 +325,23 @@ export default function MessageDetail() {
             </svg>
           </button>
           {debugOpen && (
-            <div className="border-t border-gray-100 px-6 py-4 space-y-3">
+            <div className="space-y-3 border-t border-gray-100 px-6 py-4 dark:border-[#586e75]">
               {message.modem_response && (
                 <div>
-                  <span className="block text-xs font-medium uppercase text-gray-500 mb-1">
+                  <span className="mb-1 block text-xs font-medium uppercase text-gray-500 dark:text-[#93a1a1]">
                     Modem Response
                   </span>
-                  <pre className="rounded-md bg-gray-50 p-3 text-xs text-gray-700 overflow-x-auto">
+                  <pre className="overflow-x-auto rounded-md bg-gray-50 p-3 text-xs text-gray-700 dark:bg-[#002b36] dark:text-[#93a1a1]">
                     {message.modem_response}
                   </pre>
                 </div>
               )}
               {message.error_message && (
                 <div>
-                  <span className="block text-xs font-medium uppercase text-gray-500 mb-1">
+                  <span className="mb-1 block text-xs font-medium uppercase text-gray-500 dark:text-[#93a1a1]">
                     Error Message
                   </span>
-                  <pre className="rounded-md bg-red-50 p-3 text-xs text-red-700 overflow-x-auto">
+                  <pre className="overflow-x-auto rounded-md bg-red-50 p-3 text-xs text-red-700 dark:bg-[#3b1f23] dark:text-[#dc322f]">
                     {message.error_message}
                   </pre>
                 </div>
