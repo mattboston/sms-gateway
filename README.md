@@ -1,3 +1,5 @@
+![Illustration of a laptop with a blue SMS speech bubble on the screen](images/logo-1x.png)
+
 # SMS Gateway
 
 A self-hosted SMS gateway that provides a WebUI and REST API for sending and receiving SMS messages via a USB GSM modem. Built with Go and React, packaged as a single binary.
