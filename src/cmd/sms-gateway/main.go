@@ -311,7 +311,7 @@ func apikeyCmd() *cobra.Command {
 			}
 			defer cleanup()
 
-			keys, err := repo.ListAPIKeys()
+			keys, err := repo.ListAPIKeys(database.ListOptions{})
 			if err != nil {
 				return fmt.Errorf("listing API keys: %w", err)
 			}

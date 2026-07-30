@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import api from '@/lib/api';
+import Pagination from '@/components/Pagination';
+import { usePaginatedList } from '@/lib/usePaginatedList';
 
 interface APIKey {
   id: string;
@@ -10,9 +12,22 @@ interface APIKey {
 }
 
 export default function APIKeys() {
-  const [keys, setKeys] = useState<APIKey[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const {
+    items: keys,
+    total,
+    page,
+    pageSize,
+    totalPages,
+    loading,
+    refreshing,
+    error: loadError,
+    setPage,
+    setPageSize,
+    removeItems,
+    refresh,
+  } = usePaginatedList<APIKey>('/apikeys');
+
+  const [actionError, setActionError] = useState('');
   const [label, setLabel] = useState('');
   const [creating, setCreating] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
@@ -21,34 +36,20 @@ export default function APIKeys() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
 
-  const fetchKeys = useCallback(async () => {
-    try {
-      const response = await api.get('/apikeys');
-      setKeys(response.data);
-      setError('');
-    } catch {
-      setError('Failed to load API keys.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchKeys();
-  }, [fetchKeys]);
+  const error = actionError || loadError;
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
     if (!label.trim()) return;
     setCreating(true);
-    setError('');
+    setActionError('');
     try {
       const response = await api.post('/apikeys', { label: label.trim() });
       setNewKey(response.data.key);
       setLabel('');
-      await fetchKeys();
+      refresh();
     } catch {
-      setError('Failed to create API key.');
+      setActionError('Failed to create API key.');
     } finally {
       setCreating(false);
     }
@@ -58,9 +59,9 @@ export default function APIKeys() {
     try {
       await api.delete(`/apikeys/${id}`);
       setConfirmId(null);
-      await fetchKeys();
+      refresh();
     } catch {
-      setError('Failed to deactivate API key.');
+      setActionError('Failed to deactivate API key.');
     }
   };
 
@@ -68,9 +69,9 @@ export default function APIKeys() {
     try {
       await api.delete(`/apikeys/${id}/delete`);
       setDeleteConfirmId(null);
-      await fetchKeys();
+      removeItems(new Set([id]));
     } catch {
-      setError('Failed to delete API key.');
+      setActionError('Failed to delete API key.');
     }
   };
 
@@ -92,7 +93,7 @@ export default function APIKeys() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError('Failed to copy to clipboard.');
+      setActionError('Failed to copy to clipboard.');
     }
   };
 
@@ -126,10 +127,14 @@ export default function APIKeys() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">API Keys</h1>
-      <p className="mt-1 text-sm text-gray-600 dark:text-[#93a1a1]">Manage API keys for programmatic access.</p>
+      <p className="mt-1 text-sm text-gray-600 dark:text-[#93a1a1]">
+        Manage API keys for programmatic access.
+      </p>
 
       {error && (
-        <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-[#3b1f23] dark:text-[#dc322f]">{error}</div>
+        <div className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-[#3b1f23] dark:text-[#dc322f]">
+          {error}
+        </div>
       )}
 
       {/* New key reveal banner */}
@@ -160,10 +165,15 @@ export default function APIKeys() {
 
       {/* Create form */}
       <div className="mt-6 rounded-lg bg-white p-6 shadow-md dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
-        <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-[#eee8d5]">Create New API Key</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-[#eee8d5]">
+          Create New API Key
+        </h2>
         <form onSubmit={handleCreate} className="flex items-end gap-3">
           <div className="flex-1">
-            <label htmlFor="keyLabel" className="mb-1 block text-sm font-medium text-gray-700 dark:text-[#93a1a1]">
+            <label
+              htmlFor="keyLabel"
+              className="mb-1 block text-sm font-medium text-gray-700 dark:text-[#93a1a1]"
+            >
               Label
             </label>
             <input
@@ -189,117 +199,154 @@ export default function APIKeys() {
       {/* Keys table */}
       <div className="mt-6 overflow-hidden rounded-lg bg-white shadow-md dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
         {loading ? (
-          <div className="p-6 text-center text-sm text-gray-500 dark:text-[#93a1a1]">Loading API keys...</div>
+          <div className="p-6 text-center text-sm text-gray-500 dark:text-[#93a1a1]">
+            Loading API keys...
+          </div>
         ) : keys.length === 0 ? (
-          <div className="p-6 text-center text-sm text-gray-500 dark:text-[#93a1a1]">No API keys found.</div>
+          <div className="p-6 text-center text-sm text-gray-500 dark:text-[#93a1a1]">
+            No API keys found.
+          </div>
         ) : (
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-gray-200 bg-gray-50 dark:border-[#586e75] dark:bg-[#002b36]">
-              <tr>
-                <th className="px-6 py-3 font-medium text-gray-600 dark:text-[#93a1a1]">Label</th>
-                <th className="px-6 py-3 font-medium text-gray-600 dark:text-[#93a1a1]">Key</th>
-                <th className="px-6 py-3 font-medium text-gray-600 dark:text-[#93a1a1]">Status</th>
-                <th className="px-6 py-3 font-medium text-gray-600 dark:text-[#93a1a1]">Created</th>
-                <th className="px-6 py-3 font-medium text-gray-600 dark:text-[#93a1a1]">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-[#586e75]">
-              {keys.map((k) => (
-                <tr key={k.id} className="hover:bg-gray-50 dark:hover:bg-[#0a4452]">
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-[#eee8d5]">{k.label}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <code className="font-mono text-xs text-gray-600 dark:text-[#93a1a1]">
-                        {revealedKeys.has(k.id) ? k.key : maskKey(k.key)}
-                      </code>
-                      <button
-                        onClick={() => toggleReveal(k.id)}
-                        className="text-xs text-blue-600 hover:text-blue-800 dark:text-[#268bd2] dark:hover:text-[#2aa5f5]"
-                        title={revealedKeys.has(k.id) ? 'Hide' : 'Reveal'}
-                      >
-                        {revealedKeys.has(k.id) ? 'Hide' : 'Show'}
-                      </button>
-                      <button
-                        onClick={() => copyToClipboard(k.key)}
-                        className="text-xs text-blue-600 hover:text-blue-800 dark:text-[#268bd2] dark:hover:text-[#2aa5f5]"
-                        title="Copy to clipboard"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    {k.active ? (
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-                        Inactive
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-gray-600 dark:text-[#93a1a1]">{formatDate(k.created_at)}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      {k.active && (
-                        <>
-                          {confirmId === k.id ? (
-                            <>
-                              <span className="text-xs text-gray-600 dark:text-[#93a1a1]">Deactivate?</span>
-                              <button
-                                onClick={() => handleDeactivate(k.id)}
-                                className="rounded bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700 transition-colors"
-                              >
-                                Yes
-                              </button>
-                              <button
-                                onClick={() => setConfirmId(null)}
-                                className="rounded bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-300 dark:bg-[#586e75] dark:text-[#eee8d5] dark:hover:bg-[#657b83]"
-                              >
-                                Cancel
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              onClick={() => { setConfirmId(k.id); setDeleteConfirmId(null); }}
-                              className="rounded bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors"
-                            >
-                              Deactivate
-                            </button>
-                          )}
-                        </>
-                      )}
-                      {deleteConfirmId === k.id ? (
-                        <>
-                          <span className="text-xs text-gray-600 dark:text-[#93a1a1]">Delete permanently?</span>
-                          <button
-                            onClick={() => handleDelete(k.id)}
-                            className="rounded bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700 transition-colors"
-                          >
-                            Yes
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirmId(null)}
-                            className="rounded bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-300 dark:bg-[#586e75] dark:text-[#eee8d5] dark:hover:bg-[#657b83]"
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          onClick={() => { setDeleteConfirmId(k.id); setConfirmId(null); }}
-                          className="rounded bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors"
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  </td>
+          <div className={refreshing ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-gray-200 bg-gray-50 dark:border-[#586e75] dark:bg-[#002b36]">
+                <tr>
+                  <th className="px-6 py-3 font-medium text-gray-600 dark:text-[#93a1a1]">Label</th>
+                  <th className="px-6 py-3 font-medium text-gray-600 dark:text-[#93a1a1]">Key</th>
+                  <th className="px-6 py-3 font-medium text-gray-600 dark:text-[#93a1a1]">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 font-medium text-gray-600 dark:text-[#93a1a1]">
+                    Created
+                  </th>
+                  <th className="px-6 py-3 font-medium text-gray-600 dark:text-[#93a1a1]">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-[#586e75]">
+                {keys.map((k) => (
+                  <tr key={k.id} className="hover:bg-gray-50 dark:hover:bg-[#0a4452]">
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-[#eee8d5]">
+                      {k.label}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <code className="font-mono text-xs text-gray-600 dark:text-[#93a1a1]">
+                          {revealedKeys.has(k.id) ? k.key : maskKey(k.key)}
+                        </code>
+                        <button
+                          onClick={() => toggleReveal(k.id)}
+                          className="text-xs text-blue-600 hover:text-blue-800 dark:text-[#268bd2] dark:hover:text-[#2aa5f5]"
+                          title={revealedKeys.has(k.id) ? 'Hide' : 'Reveal'}
+                        >
+                          {revealedKeys.has(k.id) ? 'Hide' : 'Show'}
+                        </button>
+                        <button
+                          onClick={() => copyToClipboard(k.key)}
+                          className="text-xs text-blue-600 hover:text-blue-800 dark:text-[#268bd2] dark:hover:text-[#2aa5f5]"
+                          title="Copy to clipboard"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {k.active ? (
+                        <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                          Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+                          Inactive
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-gray-600 dark:text-[#93a1a1]">
+                      {formatDate(k.created_at)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        {k.active && (
+                          <>
+                            {confirmId === k.id ? (
+                              <>
+                                <span className="text-xs text-gray-600 dark:text-[#93a1a1]">
+                                  Deactivate?
+                                </span>
+                                <button
+                                  onClick={() => handleDeactivate(k.id)}
+                                  className="rounded bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700 transition-colors"
+                                >
+                                  Yes
+                                </button>
+                                <button
+                                  onClick={() => setConfirmId(null)}
+                                  className="rounded bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-300 dark:bg-[#586e75] dark:text-[#eee8d5] dark:hover:bg-[#657b83]"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setConfirmId(k.id);
+                                  setDeleteConfirmId(null);
+                                }}
+                                className="rounded bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors"
+                              >
+                                Deactivate
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {deleteConfirmId === k.id ? (
+                          <>
+                            <span className="text-xs text-gray-600 dark:text-[#93a1a1]">
+                              Delete permanently?
+                            </span>
+                            <button
+                              onClick={() => handleDelete(k.id)}
+                              className="rounded bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700 transition-colors"
+                            >
+                              Yes
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirmId(null)}
+                              className="rounded bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-300 dark:bg-[#586e75] dark:text-[#eee8d5] dark:hover:bg-[#657b83]"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setDeleteConfirmId(k.id);
+                              setConfirmId(null);
+                            }}
+                            className="rounded bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              totalPages={totalPages}
+              busy={refreshing}
+              itemLabel="API keys"
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </div>
         )}
       </div>
     </div>

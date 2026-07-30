@@ -19,27 +19,39 @@ func NewUserHandler(repo *database.Repository) *UserHandler {
 	return &UserHandler{repo: repo}
 }
 
-// HandleListUsers returns all users.
+// HandleListUsers returns users, newest first.
 //
 // @Summary      List users
-// @Description  Returns all user accounts. Requires admin privileges.
+// @Description  Returns user accounts, newest first. Requires admin privileges.
 // @Tags         Users
 // @Produce      json
-// @Success      200  {array}   models.User
+// @Param        limit   query     int  false  "Maximum users to return (max 500). Omit to return all."
+// @Param        offset  query     int  false  "Users to skip. Only applied together with limit."
+// @Success      200  {array}   models.User  "Total users is returned in the X-Total-Count header"
+// @Failure      400  {object}  models.ErrorResponse
 // @Failure      500  {object}  models.ErrorResponse
 // @Security     BearerAuth
 // @Router       /api/v1/users [get]
-func (h *UserHandler) HandleListUsers(w http.ResponseWriter, _ *http.Request) {
-	users, err := h.repo.ListUsers()
+func (h *UserHandler) HandleListUsers(w http.ResponseWriter, r *http.Request) {
+	opts, err := parseListOptions(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	users, err := h.repo.ListUsers(opts)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "failed to list users"})
 		return
 	}
 
-	if users == nil {
-		users = []models.User{}
+	total, err := h.repo.CountUsers()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "failed to count users"})
+		return
 	}
-	writeJSON(w, http.StatusOK, users)
+
+	writePage(w, users, total)
 }
 
 // HandleCreateUser creates a new user account.

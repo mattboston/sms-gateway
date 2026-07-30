@@ -20,6 +20,21 @@ interface Message {
   created_at: string;
 }
 
+// Whole-table counts from /sms/stats. Deriving these from a page of messages
+// would report the page size instead of the real total.
+interface MessageStats {
+  total: number;
+  inbound: number;
+  outbound: number;
+  unread: number;
+  sent: number;
+  pending: number;
+  failed: number;
+}
+
+/** How many recent messages the dashboard shows, and therefore fetches. */
+const RECENT_LIMIT = 10;
+
 function formatRelativeTime(dateStr: string): string {
   const now = new Date();
   const date = new Date(dateStr);
@@ -38,12 +53,18 @@ function formatRelativeTime(dateStr: string): string {
 
 function signalBars(quality: string): number {
   switch (quality) {
-    case 'excellent': return 5;
-    case 'good': return 4;
-    case 'fair': return 3;
-    case 'poor': return 2;
-    case 'none': return 0;
-    default: return 0;
+    case 'excellent':
+      return 5;
+    case 'good':
+      return 4;
+    case 'fair':
+      return 3;
+    case 'poor':
+      return 2;
+    case 'none':
+      return 0;
+    default:
+      return 0;
   }
 }
 
@@ -61,15 +82,22 @@ export default function Dashboard() {
   const [to, setTo] = useState('');
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
-  const [sendResult, setSendResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [sendResult, setSendResult] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [statusRes, signalRes, inboxRes, outboxRes] = await Promise.allSettled([
+      // The counters come from an aggregate endpoint and the recent list asks
+      // for only the rows it renders. This page previously downloaded both
+      // entire mailboxes to show three numbers and ten rows.
+      const [statusRes, signalRes, statsRes, inboxRes, outboxRes] = await Promise.allSettled([
         api.get<ModemStatus>('/modem/status'),
         api.get<ModemSignal>('/modem/signal'),
-        api.get<Message[]>('/sms/inbox?all=true'),
-        api.get<Message[]>('/sms/outbox'),
+        api.get<MessageStats>('/sms/stats'),
+        api.get<Message[]>('/sms/inbox', { params: { all: 'true', limit: RECENT_LIMIT } }),
+        api.get<Message[]>('/sms/outbox', { params: { limit: RECENT_LIMIT } }),
       ]);
 
       if (statusRes.status === 'fulfilled') setModemStatus(statusRes.value.data);
@@ -77,16 +105,21 @@ export default function Dashboard() {
 
       if (signalRes.status === 'fulfilled') setModemSignal(signalRes.value.data);
 
+      if (statsRes.status === 'fulfilled') {
+        const stats = statsRes.value.data;
+        setTotalReceived(stats.inbound);
+        setTotalSent(stats.sent);
+        setPendingCount(stats.pending);
+      }
+
       const inbox = inboxRes.status === 'fulfilled' ? inboxRes.value.data : [];
       const outbox = outboxRes.status === 'fulfilled' ? outboxRes.value.data : [];
 
-      setTotalReceived(inbox.length);
-      setTotalSent(outbox.filter((m) => m.status === 'sent').length);
-      setPendingCount(outbox.filter((m) => m.status === 'pending' || m.status === 'sending').length);
-
+      // Both sides arrive newest-first, so merging the two newest-N lists and
+      // taking the newest N yields the same result as sorting everything.
       const combined = [...inbox, ...outbox]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        .slice(0, 10);
+        .slice(0, RECENT_LIMIT);
       setRecentMessages(combined);
     } finally {
       setLoading(false);
@@ -156,7 +189,9 @@ export default function Dashboard() {
             <span
               className={`inline-block h-3 w-3 rounded-full ${modemOk ? 'bg-green-500' : 'bg-red-500'}`}
             />
-            <span className={`text-lg font-semibold ${modemOk ? 'text-green-700 dark:text-[#859900]' : 'text-red-700 dark:text-[#dc322f]'}`}>
+            <span
+              className={`text-lg font-semibold ${modemOk ? 'text-green-700 dark:text-[#859900]' : 'text-red-700 dark:text-[#dc322f]'}`}
+            >
               {modemOk ? 'Online' : 'Offline'}
             </span>
           </div>
@@ -164,7 +199,9 @@ export default function Dashboard() {
 
         {/* Signal Strength */}
         <div className="rounded-lg bg-white p-5 shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
-          <div className="text-sm font-medium text-gray-500 dark:text-[#93a1a1]">Signal Strength</div>
+          <div className="text-sm font-medium text-gray-500 dark:text-[#93a1a1]">
+            Signal Strength
+          </div>
           <div className="mt-2 flex items-end gap-1">
             {[1, 2, 3, 4, 5].map((level) => (
               <div
@@ -183,13 +220,19 @@ export default function Dashboard() {
         {/* Total Sent */}
         <div className="rounded-lg bg-white p-5 shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
           <div className="text-sm font-medium text-gray-500 dark:text-[#93a1a1]">Total Sent</div>
-          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">{totalSent}</div>
+          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">
+            {totalSent}
+          </div>
         </div>
 
         {/* Total Received */}
         <div className="rounded-lg bg-white p-5 shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
-          <div className="text-sm font-medium text-gray-500 dark:text-[#93a1a1]">Total Received</div>
-          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">{totalReceived}</div>
+          <div className="text-sm font-medium text-gray-500 dark:text-[#93a1a1]">
+            Total Received
+          </div>
+          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">
+            {totalReceived}
+          </div>
         </div>
       </div>
 
@@ -217,7 +260,10 @@ export default function Dashboard() {
           )}
           <form onSubmit={handleQuickSend} className="mt-4 space-y-3">
             <div>
-              <label htmlFor="quickTo" className="block text-sm font-medium text-gray-700 dark:text-[#93a1a1]">
+              <label
+                htmlFor="quickTo"
+                className="block text-sm font-medium text-gray-700 dark:text-[#93a1a1]"
+              >
                 Phone Number
               </label>
               <input
@@ -231,7 +277,10 @@ export default function Dashboard() {
               />
             </div>
             <div>
-              <label htmlFor="quickBody" className="block text-sm font-medium text-gray-700 dark:text-[#93a1a1]">
+              <label
+                htmlFor="quickBody"
+                className="block text-sm font-medium text-gray-700 dark:text-[#93a1a1]"
+              >
                 Message
               </label>
               <textarea
@@ -256,7 +305,9 @@ export default function Dashboard() {
 
         {/* Recent Messages */}
         <div className="rounded-lg bg-white p-5 shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75] lg:col-span-2">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-[#eee8d5]">Recent Messages</h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-[#eee8d5]">
+            Recent Messages
+          </h2>
           {recentMessages.length === 0 ? (
             <p className="mt-4 text-sm text-gray-500 dark:text-[#93a1a1]">No messages yet.</p>
           ) : (
@@ -278,7 +329,11 @@ export default function Dashboard() {
                       >
                         {msg.direction === 'inbound' ? 'IN' : 'OUT'}
                       </span>
-                      <span className={`text-sm ${msg.direction === 'inbound' && msg.status === 'received' ? 'font-bold text-gray-900 dark:text-[#fdf6e3]' : 'font-medium text-gray-900 dark:text-[#eee8d5]'}`}>{msg.phone_number}</span>
+                      <span
+                        className={`text-sm ${msg.direction === 'inbound' && msg.status === 'received' ? 'font-bold text-gray-900 dark:text-[#fdf6e3]' : 'font-medium text-gray-900 dark:text-[#eee8d5]'}`}
+                      >
+                        {msg.phone_number}
+                      </span>
                       {msg.direction === 'inbound' && (
                         <span
                           className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium ${
@@ -291,7 +346,11 @@ export default function Dashboard() {
                         </span>
                       )}
                     </div>
-                    <p className={`mt-0.5 truncate text-sm ${msg.direction === 'inbound' && msg.status === 'received' ? 'font-semibold text-gray-900 dark:text-[#fdf6e3]' : 'text-gray-600 dark:text-[#93a1a1]'}`}>{msg.body}</p>
+                    <p
+                      className={`mt-0.5 truncate text-sm ${msg.direction === 'inbound' && msg.status === 'received' ? 'font-semibold text-gray-900 dark:text-[#fdf6e3]' : 'text-gray-600 dark:text-[#93a1a1]'}`}
+                    >
+                      {msg.body}
+                    </p>
                   </div>
                   <span className="ml-4 shrink-0 text-xs text-gray-400 dark:text-[#93a1a1]">
                     {formatRelativeTime(msg.created_at)}

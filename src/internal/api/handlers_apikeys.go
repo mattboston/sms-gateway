@@ -23,10 +23,13 @@ func NewKeyHandler(repo *database.Repository) *KeyHandler {
 // HandleListAPIKeys returns all API keys for the authenticated user.
 //
 // @Summary      List API keys
-// @Description  Returns all API keys for the authenticated user. Admins see all keys.
+// @Description  Returns API keys for the authenticated user, newest first. Admins see all keys.
 // @Tags         API Keys
 // @Produce      json
-// @Success      200  {array}   models.APIKey
+// @Param        limit   query     int  false  "Maximum keys to return (max 500). Omit to return all."
+// @Param        offset  query     int  false  "Keys to skip. Only applied together with limit."
+// @Success      200  {array}   models.APIKey  "Total matching keys is returned in the X-Total-Count header"
+// @Failure      400  {object}  models.ErrorResponse
 // @Failure      401  {object}  models.ErrorResponse
 // @Failure      500  {object}  models.ErrorResponse
 // @Security     BearerAuth
@@ -38,23 +41,38 @@ func (h *KeyHandler) HandleListAPIKeys(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var keys []models.APIKey
-	var err error
+	opts, err := parseListOptions(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
 
-	if claims.IsAdmin {
-		keys, err = h.repo.ListAPIKeys()
+	// Non-admins only ever see their own keys, so the same scope must reach the
+	// count. Counting with the wrong scope would leak the global key total to a
+	// non-admin through the X-Total-Count header.
+	scope := ""
+	if !claims.IsAdmin {
+		scope = claims.UserID
+	}
+
+	var keys []models.APIKey
+	if scope == "" {
+		keys, err = h.repo.ListAPIKeys(opts)
 	} else {
-		keys, err = h.repo.ListAPIKeysByUserID(claims.UserID)
+		keys, err = h.repo.ListAPIKeysByUserID(scope, opts)
 	}
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "failed to list API keys"})
 		return
 	}
 
-	if keys == nil {
-		keys = []models.APIKey{}
+	total, err := h.repo.CountAPIKeys(scope)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "failed to count API keys"})
+		return
 	}
-	writeJSON(w, http.StatusOK, keys)
+
+	writePage(w, keys, total)
 }
 
 // HandleCreateAPIKey generates a new API key for the authenticated user.

@@ -112,6 +112,30 @@ definitions:
       updated_at:
         type: string
     type: object
+  models.MessageStats:
+    properties:
+      by_status:
+        additionalProperties:
+          type: integer
+        description: |-
+          ByStatus is keyed "<direction>.<status>", e.g. "outbound.sent", so clients
+          can read counts this struct does not name explicitly.
+        type: object
+      failed:
+        type: integer
+      inbound:
+        type: integer
+      outbound:
+        type: integer
+      pending:
+        type: integer
+      sent:
+        type: integer
+      total:
+        type: integer
+      unread:
+        type: integer
+    type: object
   models.MessageStatus:
     enum:
     - pending
@@ -182,17 +206,30 @@ info:
 paths:
   /api/v1/apikeys:
     get:
-      description: Returns all API keys for the authenticated user. Admins see all
-        keys.
+      description: Returns API keys for the authenticated user, newest first. Admins
+        see all keys.
+      parameters:
+      - description: Maximum keys to return (max 500). Omit to return all.
+        in: query
+        name: limit
+        type: integer
+      - description: Keys to skip. Only applied together with limit.
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Total matching keys is returned in the X-Total-Count header
           schema:
             items:
               $ref: '#/definitions/models.APIKey'
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
@@ -627,15 +664,27 @@ paths:
         in: query
         name: all
         type: string
+      - description: Maximum messages to return (max 500). Omit to return all.
+        in: query
+        name: limit
+        type: integer
+      - description: Messages to skip. Only applied together with limit.
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Total matching messages is returned in the X-Total-Count header
           schema:
             items:
               $ref: '#/definitions/models.Message'
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -648,16 +697,29 @@ paths:
       - SMS
   /api/v1/sms/outbox:
     get:
-      description: Returns all outbound SMS messages.
+      description: Returns outbound SMS messages, newest first.
+      parameters:
+      - description: Maximum messages to return (max 500). Omit to return all.
+        in: query
+        name: limit
+        type: integer
+      - description: Messages to skip. Only applied together with limit.
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Total matching messages is returned in the X-Total-Count header
           schema:
             items:
               $ref: '#/definitions/models.Message'
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -702,18 +764,52 @@ paths:
       summary: Send SMS
       tags:
       - SMS
-  /api/v1/users:
+  /api/v1/sms/stats:
     get:
-      description: Returns all user accounts. Requires admin privileges.
+      description: Returns message counts aggregated by direction and status. Lets
+        clients show accurate totals without downloading every message.
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
+            $ref: '#/definitions/models.MessageStats'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - ApiKeyAuth: []
+      summary: Get message statistics
+      tags:
+      - SMS
+  /api/v1/users:
+    get:
+      description: Returns user accounts, newest first. Requires admin privileges.
+      parameters:
+      - description: Maximum users to return (max 500). Omit to return all.
+        in: query
+        name: limit
+        type: integer
+      - description: Users to skip. Only applied together with limit.
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Total users is returned in the X-Total-Count header
+          schema:
             items:
               $ref: '#/definitions/models.User'
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:

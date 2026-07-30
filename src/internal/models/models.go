@@ -71,6 +71,23 @@ type SendSMSResponse struct {
 	Message string        `json:"message,omitempty"`
 }
 
+// MessageStats holds message counts aggregated across the whole table.
+//
+// These are whole-table aggregates rather than page-scoped counts, so the
+// dashboard can show accurate totals without downloading every message.
+type MessageStats struct {
+	Total    int `json:"total"`
+	Inbound  int `json:"inbound"`
+	Outbound int `json:"outbound"`
+	Unread   int `json:"unread"`
+	Sent     int `json:"sent"`
+	Pending  int `json:"pending"`
+	Failed   int `json:"failed"`
+	// ByStatus is keyed "<direction>.<status>", e.g. "outbound.sent", so clients
+	// can read counts this struct does not name explicitly.
+	ByStatus map[string]int `json:"by_status"`
+}
+
 // LoginRequest is the request body for logging in.
 type LoginRequest struct {
 	Username string `json:"username"`
