@@ -238,7 +238,7 @@ func encodeUCS2(s string) string {
 	u16 := utf16.Encode(runes)
 	var b strings.Builder
 	for _, cp := range u16 {
-		b.WriteString(fmt.Sprintf("%04X", cp))
+		fmt.Fprintf(&b, "%04X", cp)
 	}
 	return b.String()
 }
