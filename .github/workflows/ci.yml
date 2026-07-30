@@ -100,3 +100,33 @@ jobs:
           go install github.com/swaggo/swag/cmd/swag@latest
           cd src && swag init -g cmd/sms-gateway/main.go -o docs --parseDependency --parseInternal
           git diff --exit-code docs/ || (echo "Swagger docs are out of date. Run 'just swagger' and commit." && exit 1)
+
+  # Builds the release container without publishing it. The release workflow is
+  # what pushes to GHCR; this job exists so a broken Dockerfile fails a pull
+  # request instead of a tagged release — the 0.1.5 release failed here because
+  # the Go base image had drifted behind the go directive in src/go.mod.
+  container:
+    name: Container
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required to read and write the buildx layer cache.
+      actions: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # linux/amd64 only. The release builds arm64 too, but that goes through
+      # QEMU emulation and is slow; amd64 alone catches Dockerfile and
+      # toolchain breakage, which is what this job is for.
+      - name: Build container
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

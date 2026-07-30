@@ -96,7 +96,7 @@ Any SIM card with an active SMS plan will work. We use [Tello](https://tello.com
 ### Prerequisites
 
 - A USB GSM modem (e.g., Huawei E220, SIM800)
-- Go 1.24+ and Node.js 22+ (for building from source)
+- Go 1.25+ and Node.js 22+ (for building from source)
 
 ### Automated Install
 
@@ -326,7 +326,7 @@ Before contributing, review `CONTRIBUTING.md` for branch naming, conventional co
 
 ### Prerequisites
 
-- Go 1.24+
+- Go 1.25+
 - Node.js 22+
 - [Just](https://github.com/casey/just) command runner
 
