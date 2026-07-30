@@ -4,6 +4,47 @@
 
 A self-hosted SMS gateway that provides a WebUI and REST API for sending and receiving SMS messages via a USB GSM modem. Built with Go and React, packaged as a single binary.
 
+## Why SMS Gateway?
+
+Plenty of cloud services will rent you a number for sending and receiving SMS.
+Actually getting one working is another story: A2P 10DLC brand and campaign
+registration, use case vetting, approved message templates, per-segment billing,
+and the standing risk of carrier filtering or suspension. For a home lab, a small
+business alerting setup, or a side project, that is a lot of paperwork to send a
+text message.
+
+This project takes the other path. Plug a USB GSM modem into a machine, insert a
+SIM card with an SMS plan, and you have your own gateway. No registration, no
+vetting, no per-message pricing, no vendor between you and your messages.
+
+### Your alerts still get through when your internet does not
+
+This is the big one. Monitoring software that depends on a cloud SMS provider
+needs working internet to tell you that your internet is broken. When the WAN
+link drops at your house or your rack loses upstream connectivity, the exact
+moment you most need an alert is the moment your notification path disappears.
+
+A USB GSM modem sends over the cellular network, which is a completely
+independent path from your ISP. As long as you have cell coverage, messages keep
+flowing in both directions. Your monitoring stack can page you about the outage
+while it is happening, and you can text a command back to check status or kick
+off a runbook.
+
+### Other reasons to self-host
+
+- **Own your data.** Messages live in your own SQLite or PostgreSQL database, not
+  in a vendor's dashboard with a retention policy you do not control.
+- **Predictable cost.** A flat monthly SIM plan instead of per-segment billing
+  that scales with how noisy your alerts get.
+- **No content filtering.** Carriers and aggregators routinely filter A2P traffic.
+  Messages from a consumer SIM are far less likely to silently vanish.
+- **Privacy.** Message content never transits a third party.
+- **Simple integration.** A REST API with API keys works with anything that can
+  make an HTTP request, from a shell script to Prometheus Alertmanager to an
+  AI agent.
+- **Cheap hardware.** A Raspberry Pi, a dongle, and a SIM is the whole bill of
+  materials.
+
 ## Features
 
 - Send and receive SMS messages through a USB GSM modem
