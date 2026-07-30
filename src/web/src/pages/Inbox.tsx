@@ -1,15 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
-
-interface Message {
-  id: string;
-  direction: string;
-  phone_number: string;
-  body: string;
-  status: string;
-  created_at: string;
-}
+import Pagination from '@/components/Pagination';
+import { usePaginatedList, type Message } from '@/lib/usePaginatedList';
 
 function formatRelativeTime(dateStr: string): string {
   const now = new Date();
@@ -46,25 +39,31 @@ function statusLabel(status: string) {
 
 export default function Inbox() {
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const {
+    items: messages,
+    total,
+    page,
+    pageSize,
+    totalPages,
+    loading,
+    refreshing,
+    error: loadError,
+    setPage,
+    setPageSize,
+    removeItems,
+  } = usePaginatedList<Message>('/sms/inbox', { all: 'true' });
+
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
+  const error = deleteError || loadError;
+
+  // Selection is scoped to the visible page, so leaving the page must clear it —
+  // otherwise Delete would act on rows the user can no longer see.
   useEffect(() => {
-    const fetchInbox = async () => {
-      try {
-        const res = await api.get<Message[]>('/sms/inbox?all=true');
-        setMessages(res.data);
-      } catch {
-        setError('Failed to load inbox messages.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchInbox();
-  }, []);
+    setSelected(new Set());
+  }, [page, pageSize]);
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -88,17 +87,22 @@ export default function Inbox() {
     if (!confirm(`Delete ${selected.size} message${selected.size !== 1 ? 's' : ''}?`)) return;
 
     setDeleting(true);
-    setError('');
+    setDeleteError('');
     const deleted = new Set<string>();
     try {
-      for (const id of selected) {
-        await api.delete(`/sms/${id}`);
-        deleted.add(id);
+      // Deletes run concurrently; sequential awaits made bulk deletes take one
+      // round trip per message.
+      const results = await Promise.allSettled(
+        [...selected].map((id) => api.delete(`/sms/${id}`).then(() => id)),
+      );
+      for (const result of results) {
+        if (result.status === 'fulfilled') deleted.add(result.value);
       }
-    } catch {
-      setError('Failed to delete some messages.');
+      if (deleted.size !== selected.size) {
+        setDeleteError('Failed to delete some messages.');
+      }
     } finally {
-      setMessages((prev) => prev.filter((m) => !deleted.has(m.id)));
+      removeItems(deleted);
       setSelected((prev) => {
         const next = new Set(prev);
         deleted.forEach((id) => next.delete(id));
@@ -119,7 +123,14 @@ export default function Inbox() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">Inbox</h1>
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-[#fdf6e3]">Inbox</h1>
+          {total > 0 && (
+            <span className="text-sm text-gray-500 dark:text-[#93a1a1]">
+              {total.toLocaleString()} message{total !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
         {selected.size > 0 && (
           <button
             onClick={handleDelete}
@@ -132,7 +143,9 @@ export default function Inbox() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-[#3b1f23] dark:text-[#dc322f]">{error}</div>
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-[#3b1f23] dark:text-[#dc322f]">
+          {error}
+        </div>
       )}
 
       <div className="rounded-lg bg-white shadow-sm dark:bg-[#073642] dark:ring-1 dark:ring-[#586e75]">
@@ -151,74 +164,88 @@ export default function Inbox() {
                 d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
               />
             </svg>
-            <p className="mt-3 text-sm font-medium text-gray-900 dark:text-[#fdf6e3]">No messages</p>
+            <p className="mt-3 text-sm font-medium text-gray-900 dark:text-[#fdf6e3]">
+              No messages
+            </p>
             <p className="mt-1 text-sm text-gray-500 dark:text-[#93a1a1]">Your inbox is empty.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-left text-xs font-medium uppercase text-gray-500 dark:border-[#586e75] dark:text-[#93a1a1]">
-                  <th className="px-3 py-3 w-10">
-                    <input
-                      type="checkbox"
-                      checked={selected.size === messages.length && messages.length > 0}
-                      onChange={toggleAll}
-                      className="rounded border-gray-300"
-                    />
-                  </th>
-                  <th className="px-5 py-3">From</th>
-                  <th className="px-5 py-3">Message</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Time</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-[#586e75]">
-                {messages.map((msg) => (
-                  <tr
-                    key={msg.id}
-                    className={`cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-[#0a4452] ${msg.status === 'received' ? 'bg-blue-50/40 dark:bg-[#1f3e52]/40' : ''}`}
-                  >
-                    <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
+          <div className={refreshing ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 text-left text-xs font-medium uppercase text-gray-500 dark:border-[#586e75] dark:text-[#93a1a1]">
+                    <th className="px-3 py-3 w-10">
                       <input
                         type="checkbox"
-                        checked={selected.has(msg.id)}
-                        onChange={() => toggleSelect(msg.id)}
+                        checked={selected.size === messages.length && messages.length > 0}
+                        onChange={toggleAll}
+                        aria-label="Select all messages on this page"
+                        title="Select all messages on this page"
                         className="rounded border-gray-300"
                       />
-                    </td>
-                    <td
-                      className={`px-5 py-4 whitespace-nowrap ${msg.status === 'received' ? 'font-bold text-gray-900 dark:text-[#fdf6e3]' : 'font-medium text-gray-500 dark:text-[#93a1a1]'}`}
-                      onClick={() => navigate(`/messages/${msg.id}`)}
-                    >
-                      {msg.phone_number}
-                    </td>
-                    <td
-                      className={`px-5 py-4 max-w-md truncate ${msg.status === 'received' ? 'font-semibold text-gray-900 dark:text-[#fdf6e3]' : 'text-gray-500 dark:text-[#93a1a1]'}`}
-                      onClick={() => navigate(`/messages/${msg.id}`)}
-                    >
-                      {msg.body}
-                    </td>
-                    <td
-                      className="px-5 py-4"
-                      onClick={() => navigate(`/messages/${msg.id}`)}
-                    >
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(msg.status)}`}
-                      >
-                        {statusLabel(msg.status)}
-                      </span>
-                    </td>
-                    <td
-                      className="px-5 py-4 text-gray-400 whitespace-nowrap dark:text-[#93a1a1]"
-                      onClick={() => navigate(`/messages/${msg.id}`)}
-                    >
-                      {formatRelativeTime(msg.created_at)}
-                    </td>
+                    </th>
+                    <th className="px-5 py-3">From</th>
+                    <th className="px-5 py-3">Message</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3">Time</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-[#586e75]">
+                  {messages.map((msg) => (
+                    <tr
+                      key={msg.id}
+                      className={`cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-[#0a4452] ${msg.status === 'received' ? 'bg-blue-50/40 dark:bg-[#1f3e52]/40' : ''}`}
+                    >
+                      <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(msg.id)}
+                          onChange={() => toggleSelect(msg.id)}
+                          className="rounded border-gray-300"
+                        />
+                      </td>
+                      <td
+                        className={`px-5 py-4 whitespace-nowrap ${msg.status === 'received' ? 'font-bold text-gray-900 dark:text-[#fdf6e3]' : 'font-medium text-gray-500 dark:text-[#93a1a1]'}`}
+                        onClick={() => navigate(`/messages/${msg.id}`)}
+                      >
+                        {msg.phone_number}
+                      </td>
+                      <td
+                        className={`px-5 py-4 max-w-md truncate ${msg.status === 'received' ? 'font-semibold text-gray-900 dark:text-[#fdf6e3]' : 'text-gray-500 dark:text-[#93a1a1]'}`}
+                        onClick={() => navigate(`/messages/${msg.id}`)}
+                      >
+                        {msg.body}
+                      </td>
+                      <td className="px-5 py-4" onClick={() => navigate(`/messages/${msg.id}`)}>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(msg.status)}`}
+                        >
+                          {statusLabel(msg.status)}
+                        </span>
+                      </td>
+                      <td
+                        className="px-5 py-4 text-gray-400 whitespace-nowrap dark:text-[#93a1a1]"
+                        onClick={() => navigate(`/messages/${msg.id}`)}
+                      >
+                        {formatRelativeTime(msg.created_at)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              totalPages={totalPages}
+              busy={refreshing}
+              itemLabel="Messages"
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           </div>
         )}
       </div>

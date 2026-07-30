@@ -31,9 +31,12 @@ func NewRouter(repo *database.Repository, m modem.Modem, cfg *config.Config) chi
 	// CORS for dev mode.
 	if cfg.DevMode {
 		r.Use(cors.Handler(cors.Options{
-			AllowedOrigins:   []string{"*"},
-			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-API-Key"},
+			AllowedOrigins: []string{"*"},
+			AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-API-Key"},
+			// Without this the browser hides X-Total-Count from JS on cross-origin
+			// dev requests, so paginated listings cannot read their total.
+			ExposedHeaders:   []string{"X-Total-Count"},
 			AllowCredentials: true,
 			MaxAge:           300,
 		}))
@@ -61,6 +64,7 @@ func NewRouter(repo *database.Repository, m modem.Modem, cfg *config.Config) chi
 
 		r.Get("/api/v1/sms/inbox", smsHandler.HandleGetInbox)
 		r.Get("/api/v1/sms/outbox", smsHandler.HandleGetOutbox)
+		r.Get("/api/v1/sms/stats", smsHandler.HandleMessageStats)
 		r.Get("/api/v1/sms/{id}", smsHandler.HandleGetMessage)
 		r.Put("/api/v1/sms/{id}/read", smsHandler.HandleMarkRead)
 		r.Put("/api/v1/sms/{id}/unread", smsHandler.HandleMarkUnread)

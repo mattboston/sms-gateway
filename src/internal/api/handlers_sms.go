@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mattboston/sms-gateway/internal/database"
@@ -10,10 +12,61 @@ import (
 	"github.com/mattboston/sms-gateway/internal/modem"
 )
 
+// maxPageSize caps how many messages a single request may return. Values above
+// it are clamped rather than rejected, so a client asking for more simply gets
+// the maximum instead of an error.
+const maxPageSize = 500
+
 // SMSHandler handles SMS-related endpoints.
 type SMSHandler struct {
 	repo  *database.Repository
 	modem modem.Modem
+}
+
+// parseListOptions reads the limit and offset query parameters.
+//
+// Both are optional. Omitting limit returns every matching message, which is
+// what this API did before pagination existed and what existing API-key clients
+// still expect. offset is only meaningful alongside limit.
+func parseListOptions(r *http.Request) (database.ListOptions, error) {
+	var opts database.ListOptions
+
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		limit, err := strconv.Atoi(raw)
+		if err != nil || limit < 0 {
+			return opts, fmt.Errorf("limit must be a non-negative integer")
+		}
+		if limit > maxPageSize {
+			limit = maxPageSize
+		}
+		opts.Limit = limit
+	}
+
+	if raw := r.URL.Query().Get("offset"); raw != "" {
+		offset, err := strconv.Atoi(raw)
+		if err != nil || offset < 0 {
+			return opts, fmt.Errorf("offset must be a non-negative integer")
+		}
+		opts.Offset = offset
+	}
+
+	return opts, nil
+}
+
+// writePage writes a listing as a bare JSON array with the unpaginated total in
+// X-Total-Count.
+//
+// The array shape is deliberate: wrapping the response in an envelope would
+// break every existing client, so the total travels in a header instead and
+// paginated clients opt in by reading it. The generic parameter keeps the
+// nil-slice normalization in one place — a nil slice would otherwise serialize
+// as null and break clients that iterate the result.
+func writePage[T any](w http.ResponseWriter, items []T, total int) {
+	if items == nil {
+		items = []T{}
+	}
+	w.Header().Set("X-Total-Count", strconv.Itoa(total))
+	writeJSON(w, http.StatusOK, items)
 }
 
 // NewSMSHandler creates a new SMSHandler.
@@ -89,7 +142,10 @@ func (h *SMSHandler) HandleSendSMS(w http.ResponseWriter, r *http.Request) {
 // @Produce      json
 // @Param        status  query     string  false  "Filter by status: received (unread), read"
 // @Param        all     query     string  false  "Set to true to return all inbound messages regardless of status"
-// @Success      200     {array}   models.Message
+// @Param        limit   query     int     false  "Maximum messages to return (max 500). Omit to return all."
+// @Param        offset  query     int     false  "Messages to skip. Only applied together with limit."
+// @Success      200     {array}   models.Message  "Total matching messages is returned in the X-Total-Count header"
+// @Failure      400     {object}  models.ErrorResponse
 // @Failure      500     {object}  models.ErrorResponse
 // @Security     BearerAuth
 // @Security     ApiKeyAuth
@@ -106,16 +162,25 @@ func (h *SMSHandler) HandleGetInbox(w http.ResponseWriter, r *http.Request) {
 		status = &s
 	}
 
-	messages, err := h.repo.ListMessages(models.DirectionInbound, status)
+	opts, err := parseListOptions(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	messages, err := h.repo.ListMessages(models.DirectionInbound, status, opts)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "failed to list messages"})
 		return
 	}
 
-	if messages == nil {
-		messages = []models.Message{}
+	total, err := h.repo.CountMessages(models.DirectionInbound, status)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "failed to count messages"})
+		return
 	}
-	writeJSON(w, http.StatusOK, messages)
+
+	writePage(w, messages, total)
 }
 
 // HandleMarkRead marks an inbound message as read.
@@ -177,25 +242,57 @@ func (h *SMSHandler) HandleMarkUnread(w http.ResponseWriter, r *http.Request) {
 // HandleGetOutbox returns outbound messages.
 //
 // @Summary      Get outbox messages
-// @Description  Returns all outbound SMS messages.
+// @Description  Returns outbound SMS messages, newest first.
 // @Tags         SMS
 // @Produce      json
-// @Success      200  {array}   models.Message
+// @Param        limit   query     int  false  "Maximum messages to return (max 500). Omit to return all."
+// @Param        offset  query     int  false  "Messages to skip. Only applied together with limit."
+// @Success      200  {array}   models.Message  "Total matching messages is returned in the X-Total-Count header"
+// @Failure      400  {object}  models.ErrorResponse
 // @Failure      500  {object}  models.ErrorResponse
 // @Security     BearerAuth
 // @Security     ApiKeyAuth
 // @Router       /api/v1/sms/outbox [get]
-func (h *SMSHandler) HandleGetOutbox(w http.ResponseWriter, _ *http.Request) {
-	messages, err := h.repo.ListMessages(models.DirectionOutbound, nil)
+func (h *SMSHandler) HandleGetOutbox(w http.ResponseWriter, r *http.Request) {
+	opts, err := parseListOptions(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	messages, err := h.repo.ListMessages(models.DirectionOutbound, nil, opts)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "failed to list messages"})
 		return
 	}
 
-	if messages == nil {
-		messages = []models.Message{}
+	total, err := h.repo.CountMessages(models.DirectionOutbound, nil)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "failed to count messages"})
+		return
 	}
-	writeJSON(w, http.StatusOK, messages)
+
+	writePage(w, messages, total)
+}
+
+// HandleMessageStats returns message counts aggregated across the whole table.
+//
+// @Summary      Get message statistics
+// @Description  Returns message counts aggregated by direction and status. Lets clients show accurate totals without downloading every message.
+// @Tags         SMS
+// @Produce      json
+// @Success      200  {object}  models.MessageStats
+// @Failure      500  {object}  models.ErrorResponse
+// @Security     BearerAuth
+// @Security     ApiKeyAuth
+// @Router       /api/v1/sms/stats [get]
+func (h *SMSHandler) HandleMessageStats(w http.ResponseWriter, _ *http.Request) {
+	stats, err := h.repo.MessageStats()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "failed to compute message stats"})
+		return
+	}
+	writeJSON(w, http.StatusOK, stats)
 }
 
 // HandleDeleteMessage deletes a message by ID.

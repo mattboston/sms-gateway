@@ -24,6 +24,35 @@ func (r *Repository) Ping() error {
 	return r.db.Ping()
 }
 
+// --- Pagination ---
+
+// ListOptions controls how a listing is paginated.
+//
+// A zero Limit means "no limit", which preserves the behavior callers had before
+// pagination existed. Offset is only applied alongside a positive Limit: OFFSET
+// without LIMIT is not portable across SQLite and PostgreSQL, and no caller
+// needs it.
+type ListOptions struct {
+	Limit  int
+	Offset int
+}
+
+// applyPagination appends the LIMIT/OFFSET clause for opts to a query.
+//
+// Every paginated listing goes through this so the "offset needs a limit" rule
+// is enforced in exactly one place.
+func applyPagination(query string, args []any, opts ListOptions) (string, []any) {
+	if opts.Limit > 0 {
+		query += ` LIMIT ?`
+		args = append(args, opts.Limit)
+		if opts.Offset > 0 {
+			query += ` OFFSET ?`
+			args = append(args, opts.Offset)
+		}
+	}
+	return query, args
+}
+
 // --- Users ---
 
 // CreateUser inserts a new user and returns the created user.
@@ -93,12 +122,17 @@ func (r *Repository) GetUserByUsername(username string) (*models.User, error) {
 	return scanUser(row)
 }
 
-// ListUsers returns all users.
-func (r *Repository) ListUsers() ([]models.User, error) {
-	rows, err := r.db.Query(
+// ListUsers returns users newest first, limited according to opts.
+func (r *Repository) ListUsers(opts ListOptions) ([]models.User, error) {
+	// id breaks created_at ties for the same reason it does for messages: the
+	// column has second granularity, so paging needs a stable total order.
+	query, args := applyPagination(
 		`SELECT id, username, password_hash, is_admin, must_change_password, created_at, updated_at
-		 FROM users ORDER BY created_at DESC`,
+		 FROM users ORDER BY created_at DESC, id DESC`,
+		nil, opts,
 	)
+
+	rows, err := r.db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("listing users: %w", err)
 	}
@@ -113,6 +147,15 @@ func (r *Repository) ListUsers() ([]models.User, error) {
 		users = append(users, *u)
 	}
 	return users, rows.Err()
+}
+
+// CountUsers returns the total number of users, ignoring any pagination window.
+func (r *Repository) CountUsers() (int, error) {
+	var total int
+	if err := r.db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&total); err != nil {
+		return 0, fmt.Errorf("counting users: %w", err)
+	}
+	return total, nil
 }
 
 // --- API Keys ---
@@ -151,12 +194,30 @@ func (r *Repository) getAPIKeyByID(id string) (*models.APIKey, error) {
 	return scanAPIKey(row)
 }
 
-// ListAPIKeys returns all API keys.
-func (r *Repository) ListAPIKeys() ([]models.APIKey, error) {
-	rows, err := r.db.Query(
-		`SELECT id, key, label, user_id, is_active, created_at, updated_at
-		 FROM api_keys ORDER BY created_at DESC`,
+// apiKeyColumns is the column list shared by every API key SELECT.
+const apiKeyColumns = `id, key, label, user_id, is_active, created_at, updated_at`
+
+// ListAPIKeys returns API keys newest first, limited according to opts.
+func (r *Repository) ListAPIKeys(opts ListOptions) ([]models.APIKey, error) {
+	return r.listAPIKeys("", opts)
+}
+
+// ListAPIKeysByUserID returns one user's API keys, newest first, limited
+// according to opts.
+func (r *Repository) ListAPIKeysByUserID(userID string, opts ListOptions) ([]models.APIKey, error) {
+	return r.listAPIKeys(userID, opts)
+}
+
+// listAPIKeys backs both listings. An empty userID means "all users", which
+// keeps the filter identical to the one countAPIKeys applies.
+func (r *Repository) listAPIKeys(userID string, opts ListOptions) ([]models.APIKey, error) {
+	where, args := apiKeyFilter(userID)
+	query, args := applyPagination(
+		`SELECT `+apiKeyColumns+` FROM api_keys`+where+` ORDER BY created_at DESC, id DESC`,
+		args, opts,
 	)
+
+	rows, err := r.db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("listing API keys: %w", err)
 	}
@@ -173,26 +234,25 @@ func (r *Repository) ListAPIKeys() ([]models.APIKey, error) {
 	return keys, rows.Err()
 }
 
-// ListAPIKeysByUserID returns all API keys for a given user.
-func (r *Repository) ListAPIKeysByUserID(userID string) ([]models.APIKey, error) {
-	rows, err := r.db.Query(
-		`SELECT id, key, label, user_id, is_active, created_at, updated_at
-		 FROM api_keys WHERE user_id = ? ORDER BY created_at DESC`, userID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("listing API keys by user: %w", err)
+// apiKeyFilter builds the WHERE clause shared by the listing and count queries
+// so the two can never drift apart and report inconsistent totals.
+func apiKeyFilter(userID string) (string, []any) {
+	if userID == "" {
+		return "", nil
 	}
-	defer rows.Close()
+	return ` WHERE user_id = ?`, []any{userID}
+}
 
-	var keys []models.APIKey
-	for rows.Next() {
-		k, err := scanAPIKeyRows(rows)
-		if err != nil {
-			return nil, err
-		}
-		keys = append(keys, *k)
+// CountAPIKeys returns the total number of API keys, ignoring any pagination
+// window. An empty userID counts keys across all users.
+func (r *Repository) CountAPIKeys(userID string) (int, error) {
+	where, args := apiKeyFilter(userID)
+
+	var total int
+	if err := r.db.QueryRow(`SELECT COUNT(*) FROM api_keys`+where, args...).Scan(&total); err != nil {
+		return 0, fmt.Errorf("counting API keys: %w", err)
 	}
-	return keys, rows.Err()
+	return total, nil
 }
 
 // DeactivateAPIKey marks an API key as inactive.
@@ -251,24 +311,36 @@ func (r *Repository) GetMessage(id string) (*models.Message, error) {
 	return scanMessage(row)
 }
 
-// ListMessages returns messages filtered by direction and optionally status.
-func (r *Repository) ListMessages(direction models.Direction, status *models.MessageStatus) ([]models.Message, error) {
-	var rows *sql.Rows
-	var err error
+// messageColumns is the column list shared by every message SELECT.
+const messageColumns = `id, direction, phone_number, body, status, api_key_id, modem_response, error_message, created_at, updated_at`
 
+// messageFilter builds the WHERE clause shared by ListMessages and CountMessages
+// so the two can never drift apart and report inconsistent totals.
+func messageFilter(direction models.Direction, status *models.MessageStatus) (string, []any) {
+	where := ` WHERE direction = ?`
+	args := []any{string(direction)}
 	if status != nil {
-		rows, err = r.db.Query(
-			`SELECT id, direction, phone_number, body, status, api_key_id, modem_response, error_message, created_at, updated_at
-			 FROM messages WHERE direction = ? AND status = ? ORDER BY created_at DESC`,
-			string(direction), string(*status),
-		)
-	} else {
-		rows, err = r.db.Query(
-			`SELECT id, direction, phone_number, body, status, api_key_id, modem_response, error_message, created_at, updated_at
-			 FROM messages WHERE direction = ? ORDER BY created_at DESC`,
-			string(direction),
-		)
+		where += ` AND status = ?`
+		args = append(args, string(*status))
 	}
+	return where, args
+}
+
+// ListMessages returns messages filtered by direction and optionally status,
+// newest first, limited according to opts.
+func (r *Repository) ListMessages(direction models.Direction, status *models.MessageStatus, opts ListOptions) ([]models.Message, error) {
+	where, args := messageFilter(direction, status)
+
+	// created_at is stored with second granularity, so it is not unique. Ordering
+	// by it alone leaves rows created in the same second in an arbitrary order,
+	// which lets pagination repeat or skip them across page boundaries. Breaking
+	// the tie on id gives the listing a stable total order.
+	query, args := applyPagination(
+		`SELECT `+messageColumns+` FROM messages`+where+` ORDER BY created_at DESC, id DESC`,
+		args, opts,
+	)
+
+	rows, err := r.db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("listing messages: %w", err)
 	}
@@ -283,6 +355,61 @@ func (r *Repository) ListMessages(direction models.Direction, status *models.Mes
 		messages = append(messages, *m)
 	}
 	return messages, rows.Err()
+}
+
+// CountMessages returns the total number of messages matching the same filter
+// ListMessages applies, ignoring any pagination window.
+func (r *Repository) CountMessages(direction models.Direction, status *models.MessageStatus) (int, error) {
+	where, args := messageFilter(direction, status)
+
+	var total int
+	if err := r.db.QueryRow(`SELECT COUNT(*) FROM messages`+where, args...).Scan(&total); err != nil {
+		return 0, fmt.Errorf("counting messages: %w", err)
+	}
+	return total, nil
+}
+
+// MessageStats returns message counts aggregated by direction and status.
+//
+// The dashboard needs status-filtered totals across the whole table, which a
+// single page of results cannot provide. Aggregating in SQL keeps it O(1)
+// requests instead of downloading every message to count them client-side.
+func (r *Repository) MessageStats() (*models.MessageStats, error) {
+	rows, err := r.db.Query(`SELECT direction, status, COUNT(*) FROM messages GROUP BY direction, status`)
+	if err != nil {
+		return nil, fmt.Errorf("aggregating message stats: %w", err)
+	}
+	defer rows.Close()
+
+	stats := &models.MessageStats{ByStatus: map[string]int{}}
+	for rows.Next() {
+		var direction, status string
+		var count int
+		if err := rows.Scan(&direction, &status, &count); err != nil {
+			return nil, fmt.Errorf("scanning message stats: %w", err)
+		}
+
+		stats.ByStatus[direction+"."+status] = count
+		stats.Total += count
+		switch models.Direction(direction) {
+		case models.DirectionInbound:
+			stats.Inbound += count
+			if models.MessageStatus(status) == models.StatusReceived {
+				stats.Unread += count
+			}
+		case models.DirectionOutbound:
+			stats.Outbound += count
+			switch models.MessageStatus(status) {
+			case models.StatusSent:
+				stats.Sent += count
+			case models.StatusPending, models.StatusSending:
+				stats.Pending += count
+			case models.StatusFailed:
+				stats.Failed += count
+			}
+		}
+	}
+	return stats, rows.Err()
 }
 
 // UpdateMessageStatus updates the status and optionally the modem response or error of a message.
@@ -357,7 +484,7 @@ func (r *Repository) DeleteMessage(id string) error {
 // GetPendingMessages returns all outbound messages with pending status.
 func (r *Repository) GetPendingMessages() ([]models.Message, error) {
 	status := models.StatusPending
-	return r.ListMessages(models.DirectionOutbound, &status)
+	return r.ListMessages(models.DirectionOutbound, &status, ListOptions{})
 }
 
 // --- Scan helpers ---

@@ -25,7 +25,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all API keys for the authenticated user. Admins see all keys.",
+                "description": "Returns API keys for the authenticated user, newest first. Admins see all keys.",
                 "produces": [
                     "application/json"
                 ],
@@ -33,14 +33,34 @@ const docTemplate = `{
                     "API Keys"
                 ],
                 "summary": "List API keys",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Maximum keys to return (max 500). Omit to return all.",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Keys to skip. Only applied together with limit.",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Total matching keys is returned in the X-Total-Count header",
                         "schema": {
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/models.APIKey"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "401": {
@@ -526,16 +546,34 @@ const docTemplate = `{
                         "description": "Set to true to return all inbound messages regardless of status",
                         "name": "all",
                         "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum messages to return (max 500). Omit to return all.",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Messages to skip. Only applied together with limit.",
+                        "name": "offset",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Total matching messages is returned in the X-Total-Count header",
                         "schema": {
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/models.Message"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "500": {
@@ -557,7 +595,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Returns all outbound SMS messages.",
+                "description": "Returns outbound SMS messages, newest first.",
                 "produces": [
                     "application/json"
                 ],
@@ -565,14 +603,34 @@ const docTemplate = `{
                     "SMS"
                 ],
                 "summary": "Get outbox messages",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Maximum messages to return (max 500). Omit to return all.",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Messages to skip. Only applied together with limit.",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Total matching messages is returned in the X-Total-Count header",
                         "schema": {
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/models.Message"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "500": {
@@ -627,6 +685,40 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/sms/stats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Returns message counts aggregated by direction and status. Lets clients show accurate totals without downloading every message.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SMS"
+                ],
+                "summary": "Get message statistics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.MessageStats"
                         }
                     },
                     "500": {
@@ -848,7 +940,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns all user accounts. Requires admin privileges.",
+                "description": "Returns user accounts, newest first. Requires admin privileges.",
                 "produces": [
                     "application/json"
                 ],
@@ -856,14 +948,34 @@ const docTemplate = `{
                     "Users"
                 ],
                 "summary": "List users",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Maximum users to return (max 500). Omit to return all.",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Users to skip. Only applied together with limit.",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Total users is returned in the X-Total-Count header",
                         "schema": {
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/models.User"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "500": {
@@ -1096,6 +1208,39 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "models.MessageStats": {
+            "type": "object",
+            "properties": {
+                "by_status": {
+                    "description": "ByStatus is keyed \"\u003cdirection\u003e.\u003cstatus\u003e\", e.g. \"outbound.sent\", so clients\ncan read counts this struct does not name explicitly.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "failed": {
+                    "type": "integer"
+                },
+                "inbound": {
+                    "type": "integer"
+                },
+                "outbound": {
+                    "type": "integer"
+                },
+                "pending": {
+                    "type": "integer"
+                },
+                "sent": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "unread": {
+                    "type": "integer"
                 }
             }
         },
