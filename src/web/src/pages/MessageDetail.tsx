@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
+import { textDirection } from '@/lib/text';
 
 interface Message {
   id: string;
@@ -234,7 +235,7 @@ export default function MessageDetail() {
           {/* Message Body */}
           <div className="flex gap-3">
             <span className="w-28 shrink-0 pt-0.5 text-sm font-medium text-gray-500 dark:text-[#93a1a1]">Message</span>
-            <p className="text-sm text-gray-900 whitespace-pre-wrap dark:text-[#eee8d5]">{message.body}</p>
+            <p dir={textDirection(message.body)} className="text-sm text-gray-900 whitespace-pre-wrap dark:text-[#eee8d5]">{message.body}</p>
           </div>
 
           {/* Created At */}
@@ -293,6 +294,7 @@ export default function MessageDetail() {
                 required
                 rows={3}
                 placeholder="Type your reply..."
+                dir={textDirection(replyBody)}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-[#586e75] dark:bg-[#002b36] dark:text-[#eee8d5] dark:focus:border-[#268bd2] dark:focus:ring-[#268bd2]"
               />
             </div>
