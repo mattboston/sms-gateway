@@ -2,7 +2,9 @@ package database
 
 import (
 	"database/sql"
+	"strings"
 	"testing"
+	"time"
 
 	smsgateway "github.com/mattboston/sms-gateway"
 	"github.com/mattboston/sms-gateway/internal/models"
@@ -564,5 +566,109 @@ func TestPing(t *testing.T) {
 	repo := setupTestDB(t)
 	if err := repo.Ping(); err != nil {
 		t.Fatalf("Ping() error = %v", err)
+	}
+}
+
+
+func TestConsolidateConnectedInboundMessages(t *testing.T) {
+	repo := setupTestDB(t)
+
+	part1 := strings.Repeat("ا", 67)
+	part2 := strings.Repeat("ب", 67)
+	part3 := "پایان"
+
+	baseTime := time.Date(2026, 8, 3, 8, 47, 0, 0, time.UTC)
+	ids := make([]string, 0, 3)
+	for i, body := range []string{part1, part2, part3} {
+		msg, err := repo.CreateMessage(models.DirectionInbound, "9008", body, models.StatusReceived, nil)
+		if err != nil {
+			t.Fatalf("CreateMessage part %d: %v", i, err)
+		}
+		ts := baseTime.Add(time.Duration(i) * time.Second).Format(time.RFC3339)
+		if _, err := repo.db.Exec(`UPDATE messages SET created_at = ?, updated_at = ? WHERE id = ?`, ts, ts, msg.ID); err != nil {
+			t.Fatalf("touch timestamps: %v", err)
+		}
+		ids = append(ids, msg.ID)
+	}
+
+	_, err := repo.CreateMessage(models.DirectionInbound, "9008", "fd", models.StatusReceived, nil)
+	if err != nil {
+		t.Fatalf("CreateMessage short: %v", err)
+	}
+
+	deleted, err := repo.ConsolidateConnectedInboundMessages()
+	if err != nil {
+		t.Fatalf("ConsolidateConnectedInboundMessages: %v", err)
+	}
+	if deleted != 2 {
+		t.Fatalf("deleted = %d, want 2", deleted)
+	}
+
+	merged, err := repo.GetMessage(ids[0])
+	if err != nil {
+		t.Fatalf("GetMessage merged: %v", err)
+	}
+	want := part1 + part2 + part3
+	if merged.Body != want {
+		t.Fatalf("merged body = %q, want %q", merged.Body, want)
+	}
+
+	inbox, err := repo.ListMessages(models.DirectionInbound, nil, ListOptions{})
+	if err != nil {
+		t.Fatalf("ListMessages: %v", err)
+	}
+	if len(inbox) != 2 {
+		t.Fatalf("inbox len = %d, want 2 (merged + short)", len(inbox))
+	}
+}
+
+func TestCreateOrMergeInboundMessage(t *testing.T) {
+	repo := setupTestDB(t)
+
+	part1 := strings.Repeat("ا", 67)
+	msg1, err := repo.CreateOrMergeInboundMessage("9008", part1)
+	if err != nil {
+		t.Fatalf("part1: %v", err)
+	}
+
+	part2 := strings.Repeat("ب", 67)
+	msg2, err := repo.CreateOrMergeInboundMessage("9008", part2)
+	if err != nil {
+		t.Fatalf("part2: %v", err)
+	}
+	if msg2.ID != msg1.ID {
+		t.Fatalf("part2 id = %s, want %s", msg2.ID, msg1.ID)
+	}
+
+	part3 := "پایان"
+	msg3, err := repo.CreateOrMergeInboundMessage("9008", part3)
+	if err != nil {
+		t.Fatalf("part3: %v", err)
+	}
+	if msg3.ID != msg1.ID {
+		t.Fatalf("part3 should merge into same message")
+	}
+
+	// 68-unit OTP-sized bodies must not merge with each other.
+	otp1 := strings.Repeat("ک", 68)
+	otpMsg, err := repo.CreateOrMergeInboundMessage("500044", otp1)
+	if err != nil {
+		t.Fatalf("otp1: %v", err)
+	}
+	otp2 := strings.Repeat("د", 68)
+	otpMsg2, err := repo.CreateOrMergeInboundMessage("500044", otp2)
+	if err != nil {
+		t.Fatalf("otp2: %v", err)
+	}
+	if otpMsg2.ID == otpMsg.ID {
+		t.Fatal("OTP-sized messages should not merge")
+	}
+
+	short, err := repo.CreateOrMergeInboundMessage("9008", "fd")
+	if err != nil {
+		t.Fatalf("short: %v", err)
+	}
+	if short.ID == msg1.ID {
+		t.Fatalf("short message should not merge after final short segment")
 	}
 }
