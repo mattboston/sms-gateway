@@ -39,6 +39,8 @@ interface UsePaginatedListResult<T> {
   removeItems: (ids: Set<string>) => void;
   /** Refetches the current page, e.g. after creating a record. */
   refresh: () => void;
+  /** Locally patches items without changing totals (e.g. mark as read). */
+  mapItems: (fn: (items: T[]) => T[]) => void;
 }
 
 /**
@@ -133,6 +135,10 @@ export function usePaginatedList<T extends { id: string }>(
     setReloadToken((t) => t + 1);
   }, []);
 
+  const mapItems = useCallback((fn: (items: T[]) => T[]) => {
+    setItems((prev) => fn(prev));
+  }, []);
+
   return {
     items,
     total,
@@ -146,5 +152,6 @@ export function usePaginatedList<T extends { id: string }>(
     setPageSize,
     removeItems,
     refresh,
+    mapItems,
   };
 }
