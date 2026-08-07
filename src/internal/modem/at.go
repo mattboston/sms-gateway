@@ -238,9 +238,108 @@ func encodeUCS2(s string) string {
 	u16 := utf16.Encode(runes)
 	var b strings.Builder
 	for _, cp := range u16 {
-		fmt.Fprintf(&b, "%04X", cp)
+		b.WriteString(fmt.Sprintf("%04X", cp))
 	}
 	return b.String()
+}
+
+// decodeUCS2 decodes a UCS-2 (UTF-16BE) hex string into a UTF-8 string.
+func decodeUCS2(s string) (string, error) {
+	s = strings.TrimSpace(s)
+	if s == "" || len(s)%4 != 0 {
+		return "", fmt.Errorf("invalid UCS-2 hex length")
+	}
+	u16s := make([]uint16, 0, len(s)/4)
+	for i := 0; i < len(s); i += 4 {
+		chunk := s[i : i+4]
+		v, err := strconv.ParseUint(chunk, 16, 16)
+		if err != nil {
+			return "", fmt.Errorf("invalid UCS-2 hex: %w", err)
+		}
+		u16s = append(u16s, uint16(v))
+	}
+	return string(utf16.Decode(u16s)), nil
+}
+
+// looksLikeUCS2Hex reports whether s looks like a UCS-2 hex payload from a
+// modem in text mode (common for Persian/Arabic/emoji SMS).
+//
+// It deliberately rejects raw numeric strings such as long phone numbers that
+// happen to be hex-shaped (e.g. "98912123"), which would otherwise decode into
+// unrelated BMP code points and corrupt the sender field.
+func looksLikeUCS2Hex(s string) bool {
+	s = strings.TrimSpace(s)
+	// Need at least two UTF-16 code units so short sender IDs like "9008"
+	// and 4-hex PINs are not mis-decoded as a single code point.
+	if len(s) < 8 || len(s)%4 != 0 {
+		return false
+	}
+	for _, r := range s {
+		if !((r >= '0' && r <= '9') || (r >= 'A' && r <= 'F') || (r >= 'a' && r <= 'f')) {
+			return false
+		}
+	}
+
+	hasTextUnit := false
+	for i := 0; i < len(s); i += 4 {
+		v64, err := strconv.ParseUint(s[i:i+4], 16, 16)
+		if err != nil {
+			return false
+		}
+		if !plausibleSMSUCS2Unit(uint16(v64)) {
+			return false
+		}
+		hasTextUnit = true
+	}
+	return hasTextUnit
+}
+
+// plausibleSMSUCS2Unit reports whether v is a UTF-16 code unit commonly seen
+// in SMS text (ASCII, Arabic/Persian, Hebrew, punctuation, or surrogates).
+func plausibleSMSUCS2Unit(v uint16) bool {
+	switch {
+	case v == 0x0009 || v == 0x000A || v == 0x000D:
+		return true
+	case v >= 0x0020 && v <= 0x007E:
+		return true
+	case v >= 0x00A0 && v <= 0x024F:
+		return true
+	case v >= 0x0400 && v <= 0x04FF: // Cyrillic
+		return true
+	case v >= 0x0590 && v <= 0x05FF: // Hebrew
+		return true
+	case v >= 0x0600 && v <= 0x06FF: // Arabic / Persian
+		return true
+	case v >= 0x0750 && v <= 0x077F:
+		return true
+	case v >= 0x08A0 && v <= 0x08FF:
+		return true
+	case v >= 0x2000 && v <= 0x206F: // general punctuation (ZWJ/ZWNJ)
+		return true
+	case v >= 0x2600 && v <= 0x27BF: // symbols
+		return true
+	case v >= 0xD800 && v <= 0xDFFF: // surrogate halves (emoji)
+		return true
+	case v >= 0xFB50 && v <= 0xFDFF: // Arabic presentation forms
+		return true
+	case v >= 0xFE70 && v <= 0xFEFF:
+		return true
+	default:
+		return false
+	}
+}
+
+// maybeDecodeUCS2Hex returns the decoded UTF-8 text when s is UCS-2 hex,
+// otherwise returns s unchanged.
+func maybeDecodeUCS2Hex(s string) string {
+	if !looksLikeUCS2Hex(s) {
+		return s
+	}
+	decoded, err := decodeUCS2(s)
+	if err != nil || decoded == "" {
+		return s
+	}
+	return decoded
 }
 
 // parseSMSList parses an AT+CMGL response into individual messages.
@@ -282,10 +381,11 @@ func parseSMSList(resp string) []ParsedSMS {
 		}
 
 		if len(bodyLines) > 0 {
+			body := strings.Join(bodyLines, "\n")
 			messages = append(messages, ParsedSMS{
 				Index: index,
-				From:  from,
-				Body:  strings.Join(bodyLines, "\n"),
+				From:  maybeDecodeUCS2Hex(from),
+				Body:  maybeDecodeUCS2Hex(body),
 			})
 		}
 	}

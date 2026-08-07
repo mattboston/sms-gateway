@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
+import { textDirection } from '@/lib/text';
 
 interface Message {
   id: string;
@@ -122,6 +123,7 @@ export default function SendSMS() {
               Message
             </label>
             <textarea
+                dir={textDirection(body)}
               id="body"
               value={body}
               onChange={(e) => setBody(e.target.value)}
