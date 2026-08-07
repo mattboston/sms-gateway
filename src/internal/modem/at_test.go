@@ -82,6 +82,34 @@ func TestParseSMSList(t *testing.T) {
 			resp:    "\r\nOK\r\n",
 			wantLen: 0,
 		},
+		{
+			name:     "ucs2 persian body",
+			resp:     "+CMGL: 1,\"REC UNREAD\",\"9008\",,\"2024/01/15 10:30:00+00\"\r\n06330644062706450020062706270627062706270627\r\nOK",
+			wantLen:  1,
+			wantFrom: "9008",
+			wantBody: "سلام اااااا",
+		},
+		{
+			name:     "ucs2 ascii body",
+			resp:     "+CMGL: 1,\"REC UNREAD\",\"+15551234567\",,\"2024/01/15 10:30:00+00\"\r\n00480069\r\nOK",
+			wantLen:  1,
+			wantFrom: "+15551234567",
+			wantBody: "Hi",
+		},
+		{
+			name:     "raw numeric sender left intact",
+			resp:     "+CMGL: 1,\"REC UNREAD\",\"989121234567\",,\"2024/01/15 10:30:00+00\"\r\nHello\r\nOK",
+			wantLen:  1,
+			wantFrom: "989121234567",
+			wantBody: "Hello",
+		},
+		{
+			name:     "ucs2 encoded sender",
+			resp:     "+CMGL: 1,\"REC UNREAD\",\"002B003900380039\",,\"2024/01/15 10:30:00+00\"\r\n00480069\r\nOK",
+			wantLen:  1,
+			wantFrom: "+989",
+			wantBody: "Hi",
+		},
 	}
 
 	for _, tt := range tests {
@@ -169,5 +197,35 @@ func TestContainsCMGS(t *testing.T) {
 				t.Errorf("containsCMGS(%q) = %v, want %v", tt.resp, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestEncodeDecodeUCS2RoundTrip(t *testing.T) {
+	in := "سلام Hi"
+	got, err := decodeUCS2(encodeUCS2(in))
+	if err != nil {
+		t.Fatalf("decodeUCS2 error: %v", err)
+	}
+	if got != in {
+		t.Fatalf("round-trip = %q, want %q", got, in)
+	}
+}
+
+func TestLooksLikeUCS2Hex(t *testing.T) {
+	tests := []struct {
+		in   string
+		want bool
+	}{
+		{"0633064406270645", true},
+		{"00480069", true},
+		{"Hello", false},
+		{"1234", false}, // ambiguous short hex PIN
+		{"ABCD", false},
+		{"", false},
+	}
+	for _, tt := range tests {
+		if got := looksLikeUCS2Hex(tt.in); got != tt.want {
+			t.Errorf("looksLikeUCS2Hex(%q) = %v, want %v", tt.in, got, tt.want)
+		}
 	}
 }
