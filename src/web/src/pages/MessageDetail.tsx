@@ -235,7 +235,7 @@ export default function MessageDetail() {
           {/* Message Body */}
           <div className="flex gap-3">
             <span className="w-28 shrink-0 pt-0.5 text-sm font-medium text-gray-500 dark:text-[#93a1a1]">Message</span>
-            <p dir={textDirection(message.body)} className="text-sm text-gray-900 whitespace-pre-wrap dark:text-[#eee8d5]">{message.body}</p>
+            <p dir={textDirection(message.body)} className="min-w-0 flex-1 text-sm text-gray-900 whitespace-pre-wrap text-start dark:text-[#eee8d5]">{message.body}</p>
           </div>
 
           {/* Created At */}
