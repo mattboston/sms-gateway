@@ -100,13 +100,16 @@ Any SIM card with an active SMS plan will work. We use [Tello](https://tello.com
 
 ### Automated Install
 
-The install script will guide you through setting up SMS Gateway as either a systemd service. It fetches the latest release automatically.
+The install script will guide you through setting up SMS Gateway as a systemd service. It fetches the latest release automatically.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mattboston/sms-gateway/main/install.sh | sudo bash
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/mattboston/sms-gateway/main/install.sh)"
 ```
 
-Or download and run manually:
+This form downloads the script first and passes it to bash as an argument, which
+leaves stdin connected to your keyboard so the interactive prompts work.
+
+Or download and run manually, which also lets you read the script before running it:
 
 ```bash
 curl -fsSL -o install.sh https://raw.githubusercontent.com/mattboston/sms-gateway/main/install.sh

@@ -56,11 +56,27 @@ need_root() {
   [ "$(id -u)" -eq 0 ] || fatal "This script must be run as root (use sudo)"
 }
 
+# Read a value into the variable named by $1, falling back to $3.
+#
+# When the script is piped into bash (curl ... | sudo bash) stdin is the script
+# text, not the keyboard, so read would consume the script or hit EOF. Read from
+# the controlling terminal instead whenever stdin is not a terminal, and fall
+# back to defaults when there is no terminal at all (cron, cloud-init, Docker
+# build) rather than failing or blocking.
 prompt() {
-  local var="$1" msg="$2" default="$3"
-  printf '%s [%s]: ' "$msg" "$default"
-  read -r input
-  eval "$var=\${input:-$default}"
+  local var="$1" msg="$2" default="$3" input=""
+
+  if [ -t 0 ]; then
+    printf '%s [%s]: ' "$msg" "$default"
+    read -r input || input=""
+  elif ( : </dev/tty ) 2>/dev/null; then
+    printf '%s [%s]: ' "$msg" "$default" >/dev/tty
+    read -r input </dev/tty || input=""
+  else
+    warn "No terminal available; using default for '${msg}': ${default:-<empty>}"
+  fi
+
+  printf -v "$var" '%s' "${input:-$default}"
 }
 
 # --- Detect architecture ---
