@@ -17,10 +17,13 @@ An [OpenClaw](https://openclaw.ai) skill for sending and receiving SMS through a
 The SMS Gateway is a self-hosted Go binary that serves both a REST API and a WebUI. Run the automated install script on your server or Raspberry Pi:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mattboston/sms-gateway/main/install.sh | sudo bash
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/mattboston/sms-gateway/main/install.sh)"
 ```
 
-Or download and run manually:
+This form downloads the script first and passes it to bash as an argument, which
+leaves stdin connected to your keyboard so the interactive prompts work.
+
+Or download and run manually, which also lets you read the script before running it:
 
 ```bash
 curl -fsSL -o install.sh https://raw.githubusercontent.com/mattboston/sms-gateway/main/install.sh
