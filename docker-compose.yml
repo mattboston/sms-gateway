@@ -1,7 +1,11 @@
 services:
   sms-gateway:
-    image: ${IMAGE_REPOSITORY:-ghcr.io/mattboston/sms-gateway}:${IMAGE_VERSION:-latest}
-    pull_policy: always
+    build:
+      context: .
+      args:
+        VERSION: ${IMAGE_VERSION:-local}
+    image: ${IMAGE_REPOSITORY:-sms-gateway}:${IMAGE_VERSION:-local}
+    pull_policy: ${PULL_POLICY:-never}
     container_name: sms-gateway
     restart: unless-stopped
     ports:
@@ -13,7 +17,7 @@ services:
       CONFIG_FILE: ${CONFIG_FILE:-/opt/sms-gateway/sms-gateway.conf}
       DEVICE_PATH: ${DEVICE_PATH:-/dev/ttyUSB0}
       BAUD_RATE: ${BAUD_RATE:-9600}
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in the environment or .env}
       DEV_MODE: ${DEV_MODE:-false}
     volumes:
       - sms-gateway-data:/opt/sms-gateway
@@ -21,7 +25,7 @@ services:
       # enumerates as a different ttyUSB number after reconnects.
       - /dev:/dev
     device_cgroup_rules:
-      - "c 188:* rmw"
+      - "c 188:* rwm"
 
 volumes:
   sms-gateway-data:

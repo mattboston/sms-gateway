@@ -141,13 +141,20 @@ func serveCmd() *cobra.Command {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
+			if n, err := repo.ConsolidateConnectedInboundMessages(); err != nil {
+				log.Printf("Warning: failed to consolidate multipart SMS: %v", err)
+			} else if n > 0 {
+				log.Printf("Consolidated inbound multipart SMS, removed %d fragment(s)", n)
+			}
+
 			m.StartReceiver(ctx, func(from, body string) error {
-				log.Printf("Received SMS from %s: %s", from, body)
-				_, err := repo.CreateMessage("inbound", from, body, "received", nil)
+				log.Printf("Received SMS from %s (%d chars)", from, len([]rune(body)))
+				msg, err := repo.CreateOrMergeInboundMessage(from, body)
 				if err != nil {
 					log.Printf("Error saving inbound SMS: %v", err)
 					return err
 				}
+				log.Printf("Stored inbound SMS id=%s from=%s len=%d", msg.ID, from, len(msg.Body))
 				return nil
 			})
 

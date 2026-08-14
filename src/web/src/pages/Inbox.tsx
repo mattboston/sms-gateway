@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
 import Pagination from '@/components/Pagination';
 import { usePaginatedList, type Message } from '@/lib/usePaginatedList';
+import { textDirection } from '@/lib/text';
 
 function formatRelativeTime(dateStr: string): string {
   const now = new Date();
@@ -51,13 +52,15 @@ export default function Inbox() {
     setPage,
     setPageSize,
     removeItems,
+    mapItems,
   } = usePaginatedList<Message>('/sms/inbox', { all: 'true' });
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState('');
+  const [markingRead, setMarkingRead] = useState(false);
+  const [actionError, setActionError] = useState('');
 
-  const error = deleteError || loadError;
+  const error = actionError || loadError;
 
   // Selection is scoped to the visible page, so leaving the page must clear it —
   // otherwise Delete would act on rows the user can no longer see.
@@ -82,12 +85,46 @@ export default function Inbox() {
     }
   };
 
+
+  const selectedUnreadIds = messages
+    .filter((m) => selected.has(m.id) && m.status === 'received')
+    .map((m) => m.id);
+
+  const handleMarkRead = async () => {
+    if (selectedUnreadIds.length === 0) return;
+
+    setMarkingRead(true);
+    setActionError('');
+    const marked = new Set<string>();
+    try {
+      const results = await Promise.allSettled(
+        selectedUnreadIds.map((id) => api.put(`/sms/${id}/read`).then(() => id)),
+      );
+      for (const result of results) {
+        if (result.status === 'fulfilled') marked.add(result.value);
+      }
+      if (marked.size !== selectedUnreadIds.length) {
+        setActionError('Failed to mark some messages as read.');
+      }
+    } finally {
+      mapItems((prev) =>
+        prev.map((m) => (marked.has(m.id) ? { ...m, status: 'read' } : m)),
+      );
+      setSelected((prev) => {
+        const next = new Set(prev);
+        marked.forEach((id) => next.delete(id));
+        return next;
+      });
+      setMarkingRead(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (selected.size === 0) return;
     if (!confirm(`Delete ${selected.size} message${selected.size !== 1 ? 's' : ''}?`)) return;
 
     setDeleting(true);
-    setDeleteError('');
+    setActionError('');
     const deleted = new Set<string>();
     try {
       // Deletes run concurrently; sequential awaits made bulk deletes take one
@@ -99,7 +136,7 @@ export default function Inbox() {
         if (result.status === 'fulfilled') deleted.add(result.value);
       }
       if (deleted.size !== selected.size) {
-        setDeleteError('Failed to delete some messages.');
+        setActionError('Failed to delete some messages.');
       }
     } finally {
       removeItems(deleted);
@@ -132,13 +169,26 @@ export default function Inbox() {
           )}
         </div>
         {selected.size > 0 && (
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className="inline-flex items-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-          >
-            {deleting ? 'Deleting...' : `Delete (${selected.size})`}
-          </button>
+          <div className="flex items-center gap-2">
+            {selectedUnreadIds.length > 0 && (
+              <button
+                onClick={handleMarkRead}
+                disabled={markingRead || deleting}
+                className="inline-flex items-center rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50 dark:bg-[#073642] dark:text-[#93a1a1] dark:hover:bg-[#0a4452] dark:ring-1 dark:ring-[#586e75]"
+              >
+                {markingRead
+                  ? 'Marking...'
+                  : `Mark as Read (${selectedUnreadIds.length})`}
+              </button>
+            )}
+            <button
+              onClick={handleDelete}
+              disabled={deleting || markingRead}
+              className="inline-flex items-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {deleting ? 'Deleting...' : `Delete (${selected.size})`}
+            </button>
+          </div>
         )}
       </div>
 
@@ -212,6 +262,7 @@ export default function Inbox() {
                         {msg.phone_number}
                       </td>
                       <td
+                      dir={textDirection(msg.body)}
                         className={`px-5 py-4 max-w-md truncate ${msg.status === 'received' ? 'font-semibold text-gray-900 dark:text-[#fdf6e3]' : 'text-gray-500 dark:text-[#93a1a1]'}`}
                         onClick={() => navigate(`/messages/${msg.id}`)}
                       >

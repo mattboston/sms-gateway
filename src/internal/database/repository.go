@@ -2,21 +2,33 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/mattboston/sms-gateway/internal/models"
+	"github.com/mattboston/sms-gateway/internal/smsutil"
 )
 
 // Repository provides data access methods for all domain entities.
 type Repository struct {
 	db *sql.DB
+
+	// concatMu guards in-memory multipart merge state for live inbound SMS.
+	concatMu       sync.Mutex
+	concatMsgID    map[string]string
+	concatLastPart map[string]int
 }
 
 // NewRepository creates a new Repository wrapping the given database connection.
 func NewRepository(db *sql.DB) *Repository {
-	return &Repository{db: db}
+	return &Repository{
+		db:             db,
+		concatMsgID:    make(map[string]string),
+		concatLastPart: make(map[string]int),
+	}
 }
 
 // Ping verifies the database connection is alive.
@@ -479,6 +491,214 @@ func (r *Repository) DeleteMessage(id string) error {
 		return fmt.Errorf("message not found")
 	}
 	return nil
+}
+
+// getLatestInboundByPhone returns the most recently updated inbound message for a phone number.
+func (r *Repository) getLatestInboundByPhone(phoneNumber string) (*models.Message, error) {
+	row := r.db.QueryRow(
+		`SELECT `+messageColumns+` FROM messages WHERE direction = ? AND phone_number = ? ORDER BY updated_at DESC, created_at DESC, rowid DESC LIMIT 1`,
+		string(models.DirectionInbound), phoneNumber,
+	)
+	m, err := scanMessage(row)
+	if err != nil && !isNoRows(err) {
+		row = r.db.QueryRow(
+			`SELECT `+messageColumns+` FROM messages WHERE direction = ? AND phone_number = ? ORDER BY updated_at DESC, created_at DESC, id DESC LIMIT 1`,
+			string(models.DirectionInbound), phoneNumber,
+		)
+		return scanMessage(row)
+	}
+	return m, err
+}
+
+func isNoRows(err error) bool {
+	return errors.Is(err, sql.ErrNoRows)
+}
+
+// appendInboundBody appends text to an existing inbound message and bumps it to unread.
+func (r *Repository) appendInboundBody(id, extra string) (*models.Message, error) {
+	now := time.Now().UTC().Format(time.RFC3339)
+	_, err := r.db.Exec(
+		`UPDATE messages
+		 SET body = body || ?, status = ?, updated_at = ?
+		 WHERE id = ? AND direction = ?`,
+		extra, string(models.StatusReceived), now, id, string(models.DirectionInbound),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("appending inbound message body: %w", err)
+	}
+	return r.GetMessage(id)
+}
+
+// CreateOrMergeInboundMessage stores a new inbound SMS, appending to a recent
+// multipart segment from the same sender when it looks like a continuation.
+func (r *Repository) CreateOrMergeInboundMessage(phoneNumber, body string) (*models.Message, error) {
+	r.concatMu.Lock()
+	defer r.concatMu.Unlock()
+
+	now := time.Now().UTC()
+	recent, err := r.getLatestInboundByPhone(phoneNumber)
+	if err != nil && !isNoRows(err) {
+		return nil, err
+	}
+
+	if recent != nil {
+		lastPart := smsutil.UTF16Len(recent.Body)
+		if msgID, ok := r.concatMsgID[phoneNumber]; ok && msgID == recent.ID {
+			if n, ok := r.concatLastPart[phoneNumber]; ok {
+				lastPart = n
+			}
+		}
+
+		touch := recent.UpdatedAt
+		if recent.CreatedAt.After(touch) {
+			touch = recent.CreatedAt
+		}
+
+		if smsutil.ShouldMergePart(true, lastPart, touch, recent.Body, body, now, 0) {
+			msg, err := r.appendInboundBody(recent.ID, body)
+			if err != nil {
+				return nil, err
+			}
+			r.concatMsgID[phoneNumber] = msg.ID
+			r.concatLastPart[phoneNumber] = smsutil.UTF16Len(body)
+			return msg, nil
+		}
+	}
+
+	msg, err := r.CreateMessage(models.DirectionInbound, phoneNumber, body, models.StatusReceived, nil)
+	if err != nil {
+		return nil, err
+	}
+	r.concatMsgID[phoneNumber] = msg.ID
+	r.concatLastPart[phoneNumber] = smsutil.UTF16Len(body)
+	r.pruneConcatState()
+	return msg, nil
+}
+
+func (r *Repository) pruneConcatState() {
+	const maxEntries = 256
+	if len(r.concatMsgID) <= maxEntries {
+		return
+	}
+	for phone := range r.concatMsgID {
+		delete(r.concatMsgID, phone)
+		delete(r.concatLastPart, phone)
+		if len(r.concatMsgID) <= maxEntries/2 {
+			return
+		}
+	}
+}
+
+// ConsolidateConnectedInboundMessages merges historically split multipart SMS
+// rows in place. Returns the number of fragment rows deleted.
+func (r *Repository) ConsolidateConnectedInboundMessages() (int, error) {
+	messages, err := r.listInboundChronological()
+	if err != nil {
+		return 0, err
+	}
+
+	deleted := 0
+	i := 0
+	for i < len(messages) {
+		base := messages[i]
+		lastPart := smsutil.UTF16Len(base.Body)
+		lastTouch := base.CreatedAt
+		if base.UpdatedAt.After(lastTouch) {
+			lastTouch = base.UpdatedAt
+		}
+		j := i + 1
+		status := base.Status
+
+		for j < len(messages) {
+			next := messages[j]
+			if next.PhoneNumber != base.PhoneNumber {
+				break
+			}
+			if !smsutil.ShouldMergePart(true, lastPart, lastTouch, base.Body, next.Body, next.CreatedAt, 0) {
+				break
+			}
+			base.Body += next.Body
+			lastPart = smsutil.UTF16Len(next.Body)
+			lastTouch = next.CreatedAt
+			if next.UpdatedAt.After(lastTouch) {
+				lastTouch = next.UpdatedAt
+			}
+			if next.Status == models.StatusReceived {
+				status = models.StatusReceived
+			}
+			j++
+		}
+
+		if j > i+1 {
+			n, err := r.mergeInboundFragments(base.ID, base.Body, status, messages[i+1:j])
+			if err != nil {
+				return deleted, err
+			}
+			deleted += n
+		}
+		i = j
+	}
+	return deleted, nil
+}
+
+func (r *Repository) listInboundChronological() ([]models.Message, error) {
+	rows, err := r.db.Query(
+		`SELECT `+messageColumns+` FROM messages WHERE direction = ? ORDER BY created_at ASC, rowid ASC`,
+		string(models.DirectionInbound),
+	)
+	if err != nil {
+		rows, err = r.db.Query(
+			`SELECT `+messageColumns+` FROM messages WHERE direction = ? ORDER BY created_at ASC, id ASC`,
+			string(models.DirectionInbound),
+		)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("listing inbound for consolidate: %w", err)
+	}
+	defer rows.Close()
+
+	var messages []models.Message
+	for rows.Next() {
+		m, err := scanMessageRows(rows)
+		if err != nil {
+			return nil, err
+		}
+		messages = append(messages, *m)
+	}
+	return messages, rows.Err()
+}
+
+func (r *Repository) mergeInboundFragments(baseID, body string, status models.MessageStatus, fragments []models.Message) (int, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return 0, fmt.Errorf("beginning consolidate tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	if _, err := tx.Exec(
+		`UPDATE messages SET body = ?, status = ?, updated_at = ? WHERE id = ?`,
+		body, string(status), now, baseID,
+	); err != nil {
+		return 0, fmt.Errorf("updating consolidated message %s: %w", baseID, err)
+	}
+	for _, frag := range fragments {
+		res, err := tx.Exec(`DELETE FROM messages WHERE id = ?`, frag.ID)
+		if err != nil {
+			return 0, fmt.Errorf("deleting fragment %s: %w", frag.ID, err)
+		}
+		n, err := res.RowsAffected()
+		if err != nil {
+			return 0, fmt.Errorf("checking fragment delete %s: %w", frag.ID, err)
+		}
+		if n == 0 {
+			return 0, fmt.Errorf("fragment %s not found during consolidate", frag.ID)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("committing consolidate tx: %w", err)
+	}
+	return len(fragments), nil
 }
 
 // GetPendingMessages returns all outbound messages with pending status.

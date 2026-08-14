@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
+import { textDirection } from '@/lib/text';
 
 interface ModemStatus {
   status: string;

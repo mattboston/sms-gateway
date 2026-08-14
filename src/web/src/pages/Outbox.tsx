@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
 import Pagination from '@/components/Pagination';
 import { usePaginatedList, type Message } from '@/lib/usePaginatedList';
+import { textDirection } from '@/lib/text';
 
 function formatRelativeTime(dateStr: string): string {
   const now = new Date();
@@ -210,6 +211,7 @@ export default function Outbox() {
                         {msg.phone_number}
                       </td>
                       <td
+                      dir={textDirection(msg.body)}
                         className="px-5 py-4 text-gray-600 max-w-md truncate dark:text-[#93a1a1]"
                         onClick={() => navigate(`/messages/${msg.id}`)}
                       >
